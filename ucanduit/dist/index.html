@@ -1134,12 +1134,12 @@
                 this.sounds = {};
                 this.isInitialized = false;
                 
-                // CC0 sound loops (using generated tones for POC - replace with actual files later)
+                // Hybrid sound system: try audio files first, fallback to procedural generation
                 this.soundConfigs = {
-                    rain: { frequency: 100, type: 'white', baseGain: 0.3 },
-                    cafe: { frequency: 200, type: 'pink', baseGain: 0.2 },
-                    forest: { frequency: 150, type: 'brown', baseGain: 0.25 },
-                    ocean: { frequency: 80, type: 'white', baseGain: 0.35 }
+                    rain: { frequency: 100, type: 'white', baseGain: 0.3, file: 'audio/rain.mp3' },
+                    cafe: { frequency: 200, type: 'pink', baseGain: 0.2, file: 'audio/cafe.mp3' },
+                    forest: { frequency: 150, type: 'brown', baseGain: 0.25, file: 'audio/forest.mp3' },
+                    ocean: { frequency: 80, type: 'white', baseGain: 0.35, file: 'audio/ocean.mp3' }
                 };
             }
             
@@ -1148,13 +1148,20 @@
                 
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Resume AudioContext if it's suspended (required by modern browsers)
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
+                    
                     this.masterGain = this.audioContext.createGain();
                     this.masterGain.connect(this.audioContext.destination);
                     
-                    // Create each ambient sound
-                    for (const [name, config] of Object.entries(this.soundConfigs)) {
-                        this.sounds[name] = this.createAmbientSound(config);
-                    }
+                    // Create each ambient sound (now async)
+                    const soundPromises = Object.entries(this.soundConfigs).map(async ([name, config]) => {
+                        this.sounds[name] = await this.createAmbientSound(config);
+                    });
+                    await Promise.all(soundPromises);
                     
                     this.isInitialized = true;
                     console.log('Ambient noise system initialized');
@@ -1163,42 +1170,74 @@
                 }
             }
             
-            createAmbientSound(config) {
+            async createAmbientSound(config) {
                 const sound = {
                     oscillator: null,
+                    audioBuffer: null, // For audio file playback
                     gainNode: null,
                     filterNode: null,
                     isPlaying: false,
-                    config: config
+                    config: config,
+                    useFile: false
                 };
+                
+                // Try to load audio file first
+                if (config.file) {
+                    try {
+                        const response = await fetch(config.file);
+                        if (response.ok) {
+                            const arrayBuffer = await response.arrayBuffer();
+                            sound.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                            sound.useFile = true;
+                            console.log(`Loaded audio file: ${config.file}`);
+                        } else {
+                            console.log(`Audio file not found: ${config.file}, using procedural generation`);
+                        }
+                    } catch (error) {
+                        console.log(`Failed to load ${config.file}, using procedural generation:`, error.message);
+                    }
+                }
                 
                 // Create gain node for this sound
                 sound.gainNode = this.audioContext.createGain();
                 sound.gainNode.gain.value = 0; // Start muted
                 
-                // Create filter for shaping the noise
+                // Create filter for shaping the sound
                 sound.filterNode = this.audioContext.createBiquadFilter();
                 sound.filterNode.type = 'lowpass';
                 sound.filterNode.frequency.value = config.frequency;
                 sound.filterNode.Q.value = 0.5;
                 
-                // Connect: oscillator -> filter -> gain -> master
+                // Connect: source -> filter -> gain -> master
                 sound.filterNode.connect(sound.gainNode);
                 sound.gainNode.connect(this.masterGain);
                 
                 return sound;
             }
             
-            generateNoise(type) {
+            generateNoise(type, config) {
                 // Create longer buffer for smoother looping
                 const bufferSize = this.audioContext.sampleRate * 2; // 2 seconds of audio
                 const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
                 const data = buffer.getChannelData(0);
                 
                 if (type === 'white') {
-                    // Generate smooth white noise
+                    // Generate smooth white noise with some character variations
                     for (let i = 0; i < bufferSize; i++) {
-                        data[i] = (Math.random() * 2 - 1) * 0.5;
+                        // Basic white noise
+                        let sample = (Math.random() * 2 - 1) * 0.5;
+                        
+                        // Add some subtle filtering based on frequency config
+                        // This will make rain (100Hz) vs ocean (80Hz) sound different
+                        if (config.frequency < 90) {
+                            // Ocean: Add some low-frequency rumble
+                            sample += (Math.random() * 2 - 1) * 0.2 * Math.sin(i * 0.01);
+                        } else if (config.frequency > 90) {
+                            // Rain: Add some high-frequency crispness
+                            sample += (Math.random() * 2 - 1) * 0.15 * Math.sin(i * 0.02);
+                        }
+                        
+                        data[i] = sample;
                     }
                 } else if (type === 'pink') {
                     // Generate pink noise with proper filtering
@@ -1239,18 +1278,41 @@
             }
             
             startSound(soundName) {
-                if (!this.isInitialized || !this.sounds[soundName]) return;
+                if (!this.isInitialized || !this.sounds[soundName]) {
+                    console.log(`Cannot start ${soundName}: initialized=${this.isInitialized}, exists=${!!this.sounds[soundName]}`);
+                    return;
+                }
                 
                 const sound = this.sounds[soundName];
-                if (sound.isPlaying) return;
+                if (sound.isPlaying) {
+                    console.log(`${soundName} already playing`);
+                    return;
+                }
                 
-                // Create buffer source for looping
-                sound.oscillator = this.audioContext.createBufferSource();
-                sound.oscillator.buffer = this.generateNoise(sound.config.type);
-                sound.oscillator.loop = true;
-                sound.oscillator.connect(sound.filterNode);
-                sound.oscillator.start();
-                sound.isPlaying = true;
+                if (sound.useFile && sound.audioBuffer) {
+                    console.log(`Starting ${soundName} (audio file)`);
+                    
+                    // Use audio file
+                    sound.oscillator = this.audioContext.createBufferSource();
+                    sound.oscillator.buffer = sound.audioBuffer;
+                    sound.oscillator.loop = true;
+                    sound.oscillator.connect(sound.filterNode);
+                    sound.oscillator.start();
+                    sound.isPlaying = true;
+                    
+                } else {
+                    console.log(`Starting ${soundName} (${sound.config.type} noise)`);
+                    
+                    // Use procedural generation
+                    sound.oscillator = this.audioContext.createBufferSource();
+                    sound.oscillator.buffer = this.generateNoise(sound.config.type, sound.config);
+                    sound.oscillator.loop = true;
+                    sound.oscillator.connect(sound.filterNode);
+                    sound.oscillator.start();
+                    sound.isPlaying = true;
+                }
+                
+                console.log(`${soundName} started successfully`);
             }
             
             stopSound(soundName) {
@@ -1265,12 +1327,17 @@
             }
             
             setVolume(soundName, volume) {
-                if (!this.sounds[soundName]) return;
+                if (!this.sounds[soundName]) {
+                    console.log(`Sound ${soundName} not found in sounds`);
+                    return;
+                }
                 
                 const sound = this.sounds[soundName];
                 const normalizedVolume = (volume / 100) * sound.config.baseGain;
+                console.log(`Setting ${soundName} volume to ${volume}% (normalized: ${normalizedVolume})`);
                 
                 if (volume > 0 && !sound.isPlaying) {
+                    console.log(`Starting ${soundName}`);
                     this.startSound(soundName);
                 }
                 
@@ -1279,6 +1346,7 @@
                 }
                 
                 if (volume === 0 && sound.isPlaying) {
+                    console.log(`Stopping ${soundName}`);
                     this.stopSound(soundName);
                 }
             }
@@ -1293,6 +1361,7 @@
                     if (sound.isPlaying && sound.gainNode.gain.value > 0) {
                         hasActiveSound = true;
                         const volume = sound.gainNode.gain.value * 255;
+                        // Debug: console.log(`${name}: playing with volume ${volume}`);
                         const baseFreq = sound.config.frequency / 100;
                         
                         // Generate realistic frequency spectrum based on noise type
@@ -1323,6 +1392,7 @@
         
         // Global ambient noise system instance
         let ambientNoise = new AmbientNoiseSystem();
+        window.ambientNoise = ambientNoise; // Make it globally accessible for OssC
         
         // Global function for volume sliders
         window.updateNoiseVolume = async function(soundName, volume) {

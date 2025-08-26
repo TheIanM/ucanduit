@@ -427,7 +427,7 @@
                         <div class="section-toggle collapsed" id="timer-toggle">▼</div>
                     </div>
                     <div class="section-content collapsed" id="timer-content">
-                        <iframe id="timer-iframe" src="" style="width: 100%; height: 120px; border: none; background: transparent;"></iframe>
+                        <!-- Timer tool content will be dynamically loaded here -->
                     </div>
                 </div>
                 
@@ -438,7 +438,7 @@
                         <div class="section-toggle collapsed" id="sounds-toggle">▼</div>
                     </div>
                     <div class="section-content collapsed" id="sounds-content">
-                        <iframe id="sounds-iframe" src="" style="width: 100%; height: 140px; border: none; background: transparent;"></iframe>
+                        <!-- Ambient sounds tool content will be dynamically loaded here -->
                     </div>
                 </div>
                 
@@ -673,31 +673,83 @@
             dropdown.classList.toggle('show');
         };
         
-        // Collapsible section functions with iframe loading
-        window.toggleSection = function(sectionName) {
+        // Tool management system
+        window.loadedTools = {};
+        
+        // Collapsible section functions with ES6 module loading
+        window.toggleSection = async function(sectionName) {
             const content = document.getElementById(sectionName + '-content');
             const toggle = document.getElementById(sectionName + '-toggle');
-            const iframe = document.getElementById(sectionName + '-iframe');
             
             const wasCollapsed = content.classList.contains('collapsed');
             content.classList.toggle('collapsed');
             toggle.classList.toggle('collapsed');
             
-            // Load iframe when expanding, unload when collapsing
-            if (iframe) {
-                if (wasCollapsed) {
-                    // Expanding - load the tool
-                    iframe.src = `tools/${sectionName === 'sounds' ? 'ambient-sounds' : sectionName}.html`;
-                    console.log(`Loading ${sectionName} tool`);
-                } else {
-                    // Collapsing - unload to save memory
-                    iframe.src = '';
-                    console.log(`Unloading ${sectionName} tool`);
+            // Load ES6 module when expanding, unload when collapsing
+            if (wasCollapsed) {
+                // Expanding - load the tool module
+                try {
+                    await loadTool(sectionName, content);
+                    console.log(`Loaded ${sectionName} tool module`);
+                } catch (error) {
+                    console.error(`Failed to load ${sectionName} tool:`, error);
                 }
+            } else {
+                // Collapsing - unload to save memory
+                unloadTool(sectionName);
+                console.log(`Unloaded ${sectionName} tool module`);
             }
         };
+        
+        // Dynamic ES6 module loading
+        async function loadTool(toolName, container) {
+            if (window.loadedTools[toolName]) {
+                console.log(`Tool ${toolName} already loaded`);
+                return;
+            }
+            
+            try {
+                let toolModule;
+                let ToolClass;
+                
+                if (toolName === 'timer') {
+                    toolModule = await import('./tools/timer.js');
+                    ToolClass = toolModule.TimerTool;
+                } else if (toolName === 'sounds') {
+                    toolModule = await import('./tools/ambient-sounds.js');
+                    ToolClass = toolModule.AmbientSoundsTool;
+                } else {
+                    throw new Error(`Unknown tool: ${toolName}`);
+                }
+                
+                // Create tool instance
+                const toolInstance = new ToolClass(container);
+                
+                // Store reference for cleanup
+                window.loadedTools[toolName] = toolInstance;
+                
+                console.log(`Successfully loaded and instantiated ${toolName} tool`);
+                
+            } catch (error) {
+                console.error(`Error loading tool ${toolName}:`, error);
+                container.innerHTML = `<div style="color: red; text-align: center; padding: 20px;">Error loading ${toolName} tool: ${error.message}</div>`;
+            }
+        }
+        
+        // Unload tool and cleanup
+        function unloadTool(toolName) {
+            if (window.loadedTools[toolName]) {
+                // Call destroy method if it exists
+                if (typeof window.loadedTools[toolName].destroy === 'function') {
+                    window.loadedTools[toolName].destroy();
+                }
+                
+                // Remove reference
+                delete window.loadedTools[toolName];
+            }
+        }
 
-        // Parent window functions for iframe communication
+        // Global functions for tool integration
         window.updateStatus = function(text, type) {
             const badge = document.getElementById('status-badge');
             badge.textContent = text;
@@ -728,7 +780,7 @@
             }
         };
         
-        // Global reference to child ambient noise system
+        // Global reference to ambient noise system (for OssC integration)
         window.childAmbientNoise = null;
         
         // Close settings dropdown when clicking outside

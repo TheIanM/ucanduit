@@ -442,6 +442,17 @@
                     </div>
                 </div>
                 
+                <!-- Todo List Section -->
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('todos')">
+                        <div class="section-title">📝 Todo Lists</div>
+                        <div class="section-toggle collapsed" id="todos-toggle">▼</div>
+                    </div>
+                    <div class="section-content collapsed" id="todos-content">
+                        <!-- Todo list tool content will be dynamically loaded here -->
+                    </div>
+                </div>
+                
                 <!-- Future tools sections will go here -->
             </div>
         </div>
@@ -718,6 +729,9 @@
                 } else if (toolName === 'sounds') {
                     toolModule = await import('./tools/ambient-sounds.js');
                     ToolClass = toolModule.AmbientSoundsTool;
+                } else if (toolName === 'todos') {
+                    toolModule = await import('./tools/todo-list.js');
+                    ToolClass = toolModule.TodoListTool;
                 } else {
                     throw new Error(`Unknown tool: ${toolName}`);
                 }

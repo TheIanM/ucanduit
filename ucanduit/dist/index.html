@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ucanduit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --udu-green: #4ecf9d;
+            --candu-blue: #3f88c5;
+            --woohoo-red: #d72638;
+            --perfect-pink: #FF6B9F;
+            --oh-orange: #FF9B54;
+            --please-purple: #B06BFF;
+            --not-white: #F5F5F5;
+            --not-black: #2a2d34;
+            --background: var(--not-white);
+            --text-primary: var(--not-black);
+            --text-secondary: #6c757d;
+            --success: var(--udu-green);
+            --danger: var(--woohoo-red);
+            --primary: var(--candu-blue);
+            --accent: var(--please-purple);
+            --warning: var(--oh-orange);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .animated-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .animated-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.3;
+            animation: pulse 20s infinite alternate ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                filter: blur(40px);
+            }
+            100% {
+                transform: scale(1.5);
+                filter: blur(60px);
+            }
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            color: var(--not-black);
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+            margin: 2px;
+            border: 2px solid var(--not-black);
+        }
+        
+        .badge-success { background: var(--success); color: white; }
+        .badge-primary { background: var(--primary); color: white; }
+        .badge-warning { background: var(--warning); color: white; }
+        .badge-danger { background: var(--danger); color: white; }
+        .badge-accent { background: var(--accent); color: white; }
+        
+        button {
+            background: white;
+            color: var(--not-black);
+            border: 3px solid var(--not-black);
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Quicksand', sans-serif;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: var(--not-black);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Oscilloscope Styles */
+        .oscilloscope-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #oscilloscope-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            border-radius: 50%;
+            width: 400px;
+            height: 400px;
+        }
+        
+        .breathing-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--udu-green), var(--candu-blue), var(--perfect-pink));
+            z-index: 1;
+            animation: breathe 3s ease-in-out infinite;
+            filter: blur(2px);
+        }
+        
+        @keyframes breathe {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 1;
+            }
+        }
+        
+        .control-panel {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        /* Responsive adjustments for different window modes */
+        @media (max-height: 250px) {
+            body { padding: 5px; }
+            .container { display: flex; flex-direction: row; gap: 15px; align-items: center; justify-content: flex-start; }
+            .oscilloscope-container { 
+                width: 180px; 
+                height: 180px; 
+                margin: 0 10px 0 0;
+                flex-shrink: 0;
+            }
+            #oscilloscope-canvas { width: 180px; height: 180px; }
+            .breathing-core { width: 80px; height: 80px; }
+            .control-panel { margin-top: 0; text-align: left; flex-grow: 1; }
+            h1 { font-size: 16px; margin: 0; }
+            .badge { display: block; margin: 5px 0; }
+            .controls { gap: 5px; margin-top: 10px; }
+            button { padding: 5px 10px; font-size: 12px; }
+        }
+        
+        @media (max-width: 250px) {
+            body { padding: 5px; }
+            .container { text-align: center; flex-direction: column; }
+            .oscilloscope-container { width: 120px; height: 120px; margin: 10px auto; }
+            #oscilloscope-canvas { width: 120px; height: 120px; }
+            .breathing-core { width: 50px; height: 50px; }
+            h1 { font-size: 14px; margin: 10px 0; }
+            .controls { flex-direction: column; gap: 3px; }
+            button { padding: 8px 12px; font-size: 11px; display: block; width: 90%; margin: 3px auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-background">
+        <div class="animated-circle" style="width: 300px; height: 300px; background-color: var(--udu-green); top: 20%; left: 10%;"></div>
+        <div class="animated-circle" style="width: 400px; height: 400px; background-color: var(--candu-blue); top: 50%; left: 70%; animation-delay: 2s;"></div>
+        <div class="animated-circle" style="width: 200px; height: 200px; background-color: var(--perfect-pink); top: 70%; left: 30%; animation-delay: 4s;"></div>
+        <div class="animated-circle" style="width: 350px; height: 350px; background-color: var(--please-purple); top: 10%; left: 60%; animation-delay: 6s;"></div>
+    </div>
+
+    <div class="container">
+        <!-- Circular Oscilloscope Assistant -->
+        <div class="oscilloscope-container" id="oscilloscope-container">
+            <canvas id="oscilloscope-canvas" width="300" height="300"></canvas>
+            <div class="breathing-core" id="breathing-core"></div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="control-panel" id="control-panel">
+            <h1>ucanduit</h1>
+            <div class="badge badge-success" id="status-badge">Assistant Ready</div>
+            <div class="controls">
+                <button onclick="resizeHorizontal()">Horizontal</button>
+                <button onclick="resizeVertical()">Vertical</button>
+                <button onclick="resetSize()">Reset</button>
+                <button onclick="toggleDemo()" id="demo-toggle">Toggle Demo</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        let currentWindow;
+        let isReady = false;
+        let screenInfo = null;
+        
+        // Screen calculation utilities
+        async function getScreenInfo() {
+            try {
+                // Get current window position first
+                const currentPos = await window.tauriWindow.outerPosition();
+                console.log('Current window position:', currentPos);
+                
+                // Get all available monitors
+                const monitors = await window.tauriWindow.availableMonitors();
+                console.log('Available monitors:', monitors);
+                
+                // Find which monitor the window is currently on
+                let currentMonitor = null;
+                for (const monitor of monitors) {
+                    const monitorLeft = monitor.position.x;
+                    const monitorRight = monitor.position.x + monitor.size.width;
+                    const monitorTop = monitor.position.y;
+                    const monitorBottom = monitor.position.y + monitor.size.height;
+                    
+                    if (currentPos.x >= monitorLeft && currentPos.x < monitorRight &&
+                        currentPos.y >= monitorTop && currentPos.y < monitorBottom) {
+                        currentMonitor = monitor;
+                        break;
+                    }
+                }
+                
+                // Fallback to currentMonitor() if position-based detection fails
+                if (!currentMonitor) {
+                    console.log('Position-based detection failed, using currentMonitor()');
+                    currentMonitor = await window.tauriWindow.currentMonitor();
+                }
+                
+                if (currentMonitor) {
+                    console.log('Using monitor:', currentMonitor);
+                    return {
+                        width: currentMonitor.size.width,
+                        height: currentMonitor.size.height,
+                        scaleFactor: currentMonitor.scaleFactor || 1,
+                        position: currentMonitor.position
+                    };
+                }
+            } catch (error) {
+                console.error('Error getting screen info:', error);
+            }
+            // Fallback to reasonable defaults
+            return { width: 1440, height: 900, scaleFactor: 1, position: { x: 0, y: 0 } };
+        }
+        
+        function calculateWindowSizes(screenWidth, screenHeight, monitorPosition = { x: 0, y: 0 }) {
+            // Account for dock/taskbar - leave margins but maximize usable space
+            const topMargin = 10;
+            const bottomMargin = 80; // Account for dock on macOS
+            const leftMargin = 10;
+            const rightMargin = 10;
+            
+            const usableWidth = screenWidth - leftMargin - rightMargin;
+            const usableHeight = screenHeight - topMargin - bottomMargin;
+            
+            const horizontalConfig = {
+                // Horizontal: Use most of screen width, keep height reasonable for UI
+                width: usableWidth, // Use full usable width
+                height: 200, // Fixed reasonable height for horizontal mode
+                x: monitorPosition.x + leftMargin, // Account for monitor offset
+                y: monitorPosition.y + topMargin
+            };
+            
+            const verticalConfig = {
+                // Vertical: Use reasonable width, maximize height
+                width: 200, // Fixed reasonable width for vertical mode  
+                height: usableHeight, // Use full usable height
+                x: monitorPosition.x + leftMargin, // Account for monitor offset
+                y: monitorPosition.y + topMargin
+            };
+            
+            // Ensure minimum sizes for usability
+            horizontalConfig.width = Math.max(horizontalConfig.width, 400);
+            horizontalConfig.height = Math.max(horizontalConfig.height, 150);
+            
+            verticalConfig.width = Math.max(verticalConfig.width, 180);
+            verticalConfig.height = Math.max(verticalConfig.height, 400);
+            
+            // Ensure windows don't exceed screen bounds (safety check)
+            horizontalConfig.width = Math.min(horizontalConfig.width, screenWidth - 20);
+            horizontalConfig.height = Math.min(horizontalConfig.height, screenHeight - 100);
+            
+            verticalConfig.width = Math.min(verticalConfig.width, screenWidth - 20);
+            verticalConfig.height = Math.min(verticalConfig.height, screenHeight - 100);
+            
+            console.log('Calculated window sizes for screen', screenWidth + 'x' + screenHeight + ':');
+            console.log('Monitor position offset:', monitorPosition);
+            console.log('Usable area:', usableWidth + 'x' + usableHeight);
+            console.log('Horizontal:', horizontalConfig);
+            console.log('Vertical:', verticalConfig);
+            
+            return { horizontal: horizontalConfig, vertical: verticalConfig };
+        }
+        
+        async function initializeWindow() {
+            try {
+                console.log('Checking for Tauri APIs...');
+                console.log('window.__TAURI__:', window.__TAURI__);
+                
+                // Try importing directly from @tauri-apps/api
+                let getCurrentWindow, LogicalSize;
+                
+                if (window.__TAURI__) {
+                    getCurrentWindow = window.__TAURI__.window.getCurrentWindow;
+                    LogicalSize = window.__TAURI__.window.LogicalSize;
+                    console.log('Using __TAURI__ global');
+                } else {
+                    // Try dynamic import as fallback
+                    try {
+                        const { getCurrentWindow: getCurrent } = await import('https://cdn.skypack.dev/@tauri-apps/api/window');
+                        const { LogicalSize: Size } = await import('https://cdn.skypack.dev/@tauri-apps/api/window');
+                        getCurrentWindow = getCurrent;
+                        LogicalSize = Size;
+                        console.log('Using dynamic import');
+                    } catch (importError) {
+                        console.error('Failed to import Tauri APIs:', importError);
+                        throw new Error('Tauri APIs not available via any method');
+                    }
+                }
+                
+                console.log('getCurrentWindow:', getCurrentWindow);
+                console.log('LogicalSize:', LogicalSize);
+                
+                currentWindow = getCurrentWindow();
+                isReady = true;
+                console.log('Window initialized successfully');
+                
+                // Store globally for button functions
+                window.tauriWindow = currentWindow;
+                window.tauriLogicalSize = LogicalSize;
+                
+                // Get screen info and calculate optimal sizes
+                screenInfo = await getScreenInfo();
+                console.log('Screen info:', screenInfo);
+                
+                // Calculate window configurations
+                const windowConfigs = calculateWindowSizes(screenInfo.width, screenInfo.height, screenInfo.position);
+                window.windowConfigs = windowConfigs; // Store globally
+                
+                // Update status and automatically switch to vertical mode
+                document.getElementById('status-badge').textContent = 'Screen analyzed! Switching to optimal vertical mode...';
+                
+                // Automatically switch to vertical mode as default
+                setTimeout(async () => {
+                    await window.resizeVertical();
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error initializing window:', error);
+                document.getElementById('status-badge').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // Make functions global so they can be called from onclick
+        window.resizeHorizontal = async function() {
+            console.log('resizeHorizontal called, isReady:', isReady);
+            if (!isReady || !window.tauriWindow || !window.tauriLogicalSize) {
+                alert('Window APIs not ready yet');
+                return;
+            }
+            try {
+                // Always recalculate based on current monitor (fixes multi-monitor bug)
+                const currentScreenInfo = await getScreenInfo();
+                const currentConfigs = calculateWindowSizes(currentScreenInfo.width, currentScreenInfo.height, currentScreenInfo.position);
+                const config = currentConfigs.horizontal;
+                
+                console.log('Using horizontal config for current monitor:', config);
+                
+                // Set size and position
+                const newSize = new window.tauriLogicalSize(config.width, config.height);
+                await window.tauriWindow.setSize(newSize);
+                
+                const { LogicalPosition } = window.__TAURI__ ? window.__TAURI__.window : 
+                    await import('https://cdn.skypack.dev/@tauri-apps/api/window');
+                
+                const newPosition = new LogicalPosition(config.x, config.y);
+                await window.tauriWindow.setPosition(newPosition);
+                
+                console.log(`Resized to horizontal mode: ${config.width}x${config.height} at position ${config.x},${config.y}`);
+                document.getElementById('status-badge').textContent = `Horizontal Mode - ${config.width}x${config.height}`;
+            } catch (error) {
+                console.error('Error resizing horizontally:', error);
+                alert('Error: ' + error.message);
+            }
+        };
+        
+        window.resizeVertical = async function() {
+            console.log('resizeVertical called, isReady:', isReady);
+            if (!isReady || !window.tauriWindow || !window.tauriLogicalSize) {
+                alert('Window APIs not ready yet');
+                return;
+            }
+            try {
+                // Always recalculate based on current monitor (fixes multi-monitor bug)
+                const currentScreenInfo = await getScreenInfo();
+                const currentConfigs = calculateWindowSizes(currentScreenInfo.width, currentScreenInfo.height, currentScreenInfo.position);
+                const config = currentConfigs.vertical;
+                
+                console.log('Using vertical config for current monitor:', config);
+                
+                // Set size and position
+                const newSize = new window.tauriLogicalSize(config.width, config.height);
+                await window.tauriWindow.setSize(newSize);
+                
+                const { LogicalPosition } = window.__TAURI__ ? window.__TAURI__.window : 
+                    await import('https://cdn.skypack.dev/@tauri-apps/api/window');
+                
+                const newPosition = new LogicalPosition(config.x, config.y);
+                await window.tauriWindow.setPosition(newPosition);
+                
+                console.log(`Resized to vertical mode: ${config.width}x${config.height} at position ${config.x},${config.y}`);
+                document.getElementById('status-badge').textContent = `Vertical Mode - ${config.width}x${config.height}`;
+            } catch (error) {
+                console.error('Error resizing vertically:', error);
+                alert('Error: ' + error.message);
+            }
+        };
+        
+        window.resetSize = async function() {
+            console.log('resetSize called - resetting to default vertical mode');
+            // Reset means go back to default vertical mode
+            await window.resizeVertical();
+        };
+        
+        window.toggleDemo = function() {
+            if (oscilloscope) {
+                oscilloscope.demoMode = !oscilloscope.demoMode;
+                const statusText = oscilloscope.demoMode ? 'Demo ON' : 'Demo OFF';
+                document.getElementById('status-badge').textContent = `OssC Active - ${statusText}`;
+                document.getElementById('status-badge').className = oscilloscope.demoMode ? 'badge badge-primary' : 'badge badge-success';
+            }
+        };
+        
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', initializeWindow);
+    </script>
+    
+    <script>
+        // Circular Oscilloscope Implementation - Preset 1 (Original)
+        class CircularOscilloscope_Preset1 {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.centerX = this.canvas.width / 2;
+                this.centerY = this.canvas.height / 2;
+                this.radius = Math.min(this.centerX, this.centerY) - 20;
+                
+                // Audio context and analyzer
+                this.audioContext = null;
+                this.analyser = null;
+                this.dataArray = null;
+                this.bufferLength = 0;
+                
+                // Animation state
+                this.animationId = null;
+                this.isPlaying = false;
+                
+                // Visual properties
+                this.ringWidth = 4;
+                this.waveformAmplitude = 15;
+                this.rotation = 0;
+                
+                this.initializeCanvas();
+                this.startVisualization();
+            }
+            
+            initializeCanvas() {
+                // Set up high DPI canvas
+                const devicePixelRatio = window.devicePixelRatio || 1;
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width * devicePixelRatio;
+                this.canvas.height = rect.height * devicePixelRatio;
+                this.ctx.scale(devicePixelRatio, devicePixelRatio);
+                
+                // Update center and radius for new dimensions
+                this.centerX = rect.width / 2;
+                this.centerY = rect.height / 2;
+                this.radius = Math.min(this.centerX, this.centerY) - 20;
+            }
+            
+            async initializeAudio() {
+                try {
+                    // Request microphone access for ambient sound detection
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { echoCancellation: false, noiseSuppression: false } 
+                    });
+                    
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.analyser = this.audioContext.createAnalyser();
+                    
+                    const source = this.audioContext.createMediaStreamSource(stream);
+                    source.connect(this.analyser);
+                    
+                    this.analyser.fftSize = 256;
+                    this.bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(this.bufferLength);
+                    
+                    this.isPlaying = true;
+                    
+                    // Update status
+                    document.getElementById('status-badge').textContent = 'Assistant Active - Listening';
+                    document.getElementById('status-badge').className = 'badge badge-success';
+                    
+                } catch (error) {
+                    console.log('Microphone access not available, using synthetic waveform');
+                    this.useSyntheticWaveform();
+                }
+            }
+            
+            useSyntheticWaveform() {
+                // Create synthetic audio data for demo purposes
+                this.bufferLength = 64;
+                this.dataArray = new Uint8Array(this.bufferLength);
+                this.isPlaying = true;
+                
+                // Update status  
+                document.getElementById('status-badge').textContent = 'Assistant Active - Demo Mode';
+                document.getElementById('status-badge').className = 'badge badge-primary';
+            }
+            
+            updateWaveformData() {
+                if (this.analyser && this.isPlaying) {
+                    this.analyser.getByteFrequencyData(this.dataArray);
+                } else {
+                    // Generate synthetic waveform for demo
+                    const time = Date.now() * 0.001;
+                    for (let i = 0; i < this.bufferLength; i++) {
+                        const angle = (i / this.bufferLength) * Math.PI * 2;
+                        const wave1 = Math.sin(angle * 3 + time * 2) * 30;
+                        const wave2 = Math.sin(angle * 7 + time * 3) * 15;
+                        const wave3 = Math.sin(angle * 2 + time * 1.5) * 20;
+                        this.dataArray[i] = Math.abs(wave1 + wave2 + wave3) + 50;
+                    }
+                }
+            }
+            
+            drawSharpRing() {
+                // Draw the sharp outer ring
+                this.ctx.strokeStyle = '#2a2d34';
+                this.ctx.lineWidth = this.ringWidth;
+                this.ctx.beginPath();
+                this.ctx.arc(this.centerX, this.centerY, this.radius, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+            
+            drawWaveform() {
+                if (!this.dataArray) return;
+                
+                const angleStep = (Math.PI * 2) / this.bufferLength;
+                
+                this.ctx.strokeStyle = '#4ecf9d';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                
+                for (let i = 0; i < this.bufferLength; i++) {
+                    const angle = angleStep * i + this.rotation;
+                    const amplitude = (this.dataArray[i] / 255) * this.waveformAmplitude;
+                    
+                    const innerRadius = this.radius - this.waveformAmplitude;
+                    const outerRadius = innerRadius + amplitude;
+                    
+                    const startX = this.centerX + Math.cos(angle) * innerRadius;
+                    const startY = this.centerY + Math.sin(angle) * innerRadius;
+                    const endX = this.centerX + Math.cos(angle) * outerRadius;
+                    const endY = this.centerY + Math.sin(angle) * outerRadius;
+                    
+                    if (i === 0) {
+                        this.ctx.moveTo(endX, endY);
+                    } else {
+                        this.ctx.lineTo(endX, endY);
+                    }
+                }
+                
+                this.ctx.closePath();
+                this.ctx.stroke();
+                
+                // Add glow effect
+                this.ctx.shadowColor = '#4ecf9d';
+                this.ctx.shadowBlur = 10;
+                this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
+            }
+            
+            animate() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width / window.devicePixelRatio, 
+                                 this.canvas.height / window.devicePixelRatio);
+                
+                // Update data and rotation
+                this.updateWaveformData();
+                this.rotation += 0.02;
+                
+                // Draw components
+                this.drawSharpRing();
+                this.drawWaveform();
+                
+                // Continue animation
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+            
+            startVisualization() {
+                // Initialize audio (will fallback to synthetic if needed)
+                this.initializeAudio();
+                
+                // Start animation loop
+                this.animate();
+            }
+            
+            stop() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                if (this.audioContext) {
+                    this.audioContext.close();
+                }
+                this.isPlaying = false;
+            }
+        }
+        
+        // OssC - The New Vision Implementation
+        class OssC {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.centerX = this.canvas.width / 2;
+                this.centerY = this.canvas.height / 2;
+                this.baseRadius = Math.min(this.centerX, this.centerY) - 20;
+                
+                // Audio context and analyzer
+                this.audioContext = null;
+                this.analyser = null;
+                this.dataArray = null;
+                this.bufferLength = 0;
+                
+                // Animation state
+                this.animationId = null;
+                this.isPlaying = false;
+                
+                // Visual properties
+                this.ringWidth = 6;
+                this.waveformAmplitude = 25; // Bigger amplitude for outer ring
+                this.rotation = 0;
+                
+                // Audio detection
+                this.audioThreshold = 10; // Minimum audio level to trigger waveform
+                this.hasActiveAudio = false;
+                this.audioSmoothingFactor = 0.1;
+                this.demoMode = false;
+                
+                // Organic breathing circles (will be generated after canvas init)
+                this.breathingCircles = [];
+                
+                this.initializeCanvas();
+                this.startVisualization();
+            }
+            
+            generateBreathingCircles() {
+                const colors = [
+                    ['#4ecf9d', '#3f88c5'], // udu-green to candu-blue
+                    ['#3f88c5', '#FF6B9F'], // candu-blue to perfect-pink
+                    ['#FF6B9F', '#B06BFF'], // perfect-pink to please-purple
+                    ['#B06BFF', '#FF9B54'], // please-purple to oh-orange
+                    ['#FF9B54', '#4ecf9d'], // oh-orange to udu-green
+                    ['#d72638', '#4ecf9d'], // woohoo-red to udu-green
+                ];
+                
+                const circles = [];
+                const numCircles = 5; // Number of organic breathing circles
+                
+                for (let i = 0; i < numCircles; i++) {
+                    // Random position within a reasonable area (not too close to edges)
+                    const angle = (Math.PI * 2 * i / numCircles) + (Math.random() - 0.5) * 1.5;
+                    const distance = Math.random() * 0.6 * this.baseRadius; // Random distance from center
+                    
+                    circles.push({
+                        x: Math.cos(angle) * distance,
+                        y: Math.sin(angle) * distance,
+                        baseRadius: 20 + Math.random() * 40, // Random size between 20-60px
+                        colors: colors[Math.floor(Math.random() * colors.length)],
+                        breathingPhase: Math.random() * Math.PI * 2, // Random starting phase
+                        breathingSpeed: 0.02 + Math.random() * 0.03, // Slightly different speeds
+                        breathingScale: 0.8 + Math.random() * 0.4, // Random breathing intensity
+                        opacity: 0.6 + Math.random() * 0.3 // Random opacity
+                    });
+                }
+                
+                return circles;
+            }
+            
+            initializeCanvas() {
+                // Set up high DPI canvas
+                const devicePixelRatio = window.devicePixelRatio || 1;
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width * devicePixelRatio;
+                this.canvas.height = rect.height * devicePixelRatio;
+                this.ctx.scale(devicePixelRatio, devicePixelRatio);
+                
+                // Update center and radius for new dimensions
+                this.centerX = rect.width / 2;
+                this.centerY = rect.height / 2;
+                this.baseRadius = Math.min(this.centerX, this.centerY) - 20;
+                
+                // Regenerate circles when canvas changes
+                this.breathingCircles = this.generateBreathingCircles();
+            }
+            
+            async initializeAudio() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { echoCancellation: false, noiseSuppression: false } 
+                    });
+                    
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.analyser = this.audioContext.createAnalyser();
+                    
+                    const source = this.audioContext.createMediaStreamSource(stream);
+                    source.connect(this.analyser);
+                    
+                    this.analyser.fftSize = 512;
+                    this.bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(this.bufferLength);
+                    
+                    this.isPlaying = true;
+                    
+                    document.getElementById('status-badge').textContent = 'OssC Active - Listening';
+                    document.getElementById('status-badge').className = 'badge badge-success';
+                    
+                } catch (error) {
+                    console.log('Microphone access not available, using synthetic waveform');
+                    this.useSyntheticWaveform();
+                }
+            }
+            
+            useSyntheticWaveform() {
+                this.bufferLength = 128;
+                this.dataArray = new Uint8Array(this.bufferLength);
+                this.isPlaying = true;
+                this.demoMode = true;
+                
+                document.getElementById('status-badge').textContent = 'OssC Active - Demo Mode';
+                document.getElementById('status-badge').className = 'badge badge-primary';
+            }
+            
+            updateWaveformData() {
+                if (this.analyser && this.isPlaying) {
+                    this.analyser.getByteFrequencyData(this.dataArray);
+                    
+                    // Detect if there's active audio
+                    let audioSum = 0;
+                    for (let i = 0; i < this.bufferLength; i++) {
+                        audioSum += this.dataArray[i];
+                    }
+                    const audioLevel = audioSum / this.bufferLength;
+                    this.hasActiveAudio = audioLevel > this.audioThreshold;
+                    
+                } else if (this.demoMode) {
+                    // Generate synthetic waveform for demo (this counts as active audio)
+                    const time = Date.now() * 0.001;
+                    for (let i = 0; i < this.bufferLength; i++) {
+                        const angle = (i / this.bufferLength) * Math.PI * 2;
+                        const wave1 = Math.sin(angle * 4 + time * 2.5) * 40;
+                        const wave2 = Math.sin(angle * 8 + time * 1.8) * 25;
+                        const wave3 = Math.sin(angle * 3 + time * 3.2) * 30;
+                        this.dataArray[i] = Math.abs(wave1 + wave2 + wave3) + 60;
+                    }
+                    this.hasActiveAudio = true; // Demo mode always has "active audio"
+                } else {
+                    // No demo mode and no real audio - static mode
+                    this.hasActiveAudio = false;
+                }
+            }
+            
+            drawOrganicBreathingCircles() {
+                // Save the context state
+                this.ctx.save();
+                
+                // Create a circular clipping mask based on the outer ring
+                this.ctx.beginPath();
+                if (this.hasActiveAudio && this.dataArray) {
+                    // Use the same audio-responsive shape for masking
+                    const angleStep = (Math.PI * 2) / this.bufferLength;
+                    for (let i = 0; i < this.bufferLength; i++) {
+                        const angle = angleStep * i + this.rotation;
+                        const amplitude = (this.dataArray[i] / 255) * this.waveformAmplitude;
+                        const radius = this.baseRadius + amplitude - this.waveformAmplitude/2;
+                        
+                        const x = this.centerX + Math.cos(angle) * radius;
+                        const y = this.centerY + Math.sin(angle) * radius;
+                        
+                        if (i === 0) {
+                            this.ctx.moveTo(x, y);
+                        } else {
+                            this.ctx.lineTo(x, y);
+                        }
+                    }
+                    this.ctx.closePath();
+                } else {
+                    // Static circular mask
+                    this.ctx.arc(this.centerX, this.centerY, this.baseRadius, 0, Math.PI * 2);
+                }
+                this.ctx.clip();
+                
+                // Draw each breathing circle
+                this.breathingCircles.forEach(circle => {
+                    // Update breathing phase for this circle
+                    circle.breathingPhase += circle.breathingSpeed;
+                    
+                    // Calculate breathing scale
+                    const breathingScale = circle.breathingScale + 0.3 * Math.sin(circle.breathingPhase);
+                    const currentRadius = circle.baseRadius * breathingScale;
+                    
+                    // Calculate position relative to center
+                    const circleX = this.centerX + circle.x;
+                    const circleY = this.centerY + circle.y;
+                    
+                    // Create radial gradient for this circle
+                    const gradient = this.ctx.createRadialGradient(
+                        circleX, circleY, 0,
+                        circleX, circleY, currentRadius
+                    );
+                    
+                    // Convert hex colors to rgba with opacity
+                    const color1 = this.hexToRgba(circle.colors[0], circle.opacity);
+                    const color2 = this.hexToRgba(circle.colors[1], circle.opacity * 0.6);
+                    
+                    gradient.addColorStop(0, color1);
+                    gradient.addColorStop(1, color2);
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(circleX, circleY, currentRadius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Add subtle glow
+                    this.ctx.shadowColor = circle.colors[0];
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.fill();
+                    this.ctx.shadowBlur = 0;
+                });
+                
+                // Restore the context state (removes clipping mask)
+                this.ctx.restore();
+            }
+            
+            hexToRgba(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            
+            drawAudioResponsiveBorder() {
+                this.ctx.strokeStyle = '#2a2d34';
+                this.ctx.lineWidth = this.ringWidth;
+                this.ctx.beginPath();
+                
+                if (this.hasActiveAudio && this.dataArray) {
+                    // Draw audio-responsive border when audio is detected
+                    const angleStep = (Math.PI * 2) / this.bufferLength;
+                    
+                    for (let i = 0; i < this.bufferLength; i++) {
+                        const angle = angleStep * i + this.rotation;
+                        const amplitude = (this.dataArray[i] / 255) * this.waveformAmplitude;
+                        
+                        // The border radius varies based on audio
+                        const radius = this.baseRadius + amplitude - this.waveformAmplitude/2;
+                        
+                        const x = this.centerX + Math.cos(angle) * radius;
+                        const y = this.centerY + Math.sin(angle) * radius;
+                        
+                        if (i === 0) {
+                            this.ctx.moveTo(x, y);
+                        } else {
+                            this.ctx.lineTo(x, y);
+                        }
+                    }
+                    
+                    this.ctx.closePath();
+                    this.ctx.stroke();
+                    
+                    // Add glow effect when audio is active
+                    this.ctx.shadowColor = '#2a2d34';
+                    this.ctx.shadowBlur = 3;
+                    this.ctx.stroke();
+                    this.ctx.shadowBlur = 0;
+                    
+                } else {
+                    // Draw static perfect circle when no audio is detected
+                    this.ctx.arc(this.centerX, this.centerY, this.baseRadius, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+            }
+            
+            animate() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width / window.devicePixelRatio, 
+                                 this.canvas.height / window.devicePixelRatio);
+                
+                // Update data and rotation
+                this.updateWaveformData();
+                this.rotation += 0.015; // Slightly slower rotation
+                
+                // Draw components (breathing circles first, then border)
+                this.drawOrganicBreathingCircles();
+                this.drawAudioResponsiveBorder();
+                
+                // Continue animation
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+            
+            startVisualization() {
+                this.initializeAudio();
+                this.animate();
+            }
+            
+            stop() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                if (this.audioContext) {
+                    this.audioContext.close();
+                }
+                this.isPlaying = false;
+            }
+        }
+
+        // Initialize OssC when DOM is loaded
+        let oscilloscope;
+        window.addEventListener('DOMContentLoaded', () => {
+            oscilloscope = new OssC('oscilloscope-canvas');
+        });
+        
+        // Handle window resize to update oscilloscope canvas
+        window.addEventListener('resize', () => {
+            if (oscilloscope) {
+                setTimeout(() => {
+                    oscilloscope.initializeCanvas();
+                }, 100);
+            }
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (oscilloscope) {
+                oscilloscope.stop();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -190,23 +190,343 @@
             margin-top: 15px;
         }
 
+        /* Ambient Noise Controls */
+        .noise-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin: 10px 0 20px 0;
+            padding: 10px 0;
+        }
+
+        .noise-item {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .noise-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 12px;
+            border-radius: 8px;
+            background: var(--not-white);
+            border: 2px solid var(--not-black);
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            --thumb-scale: 1;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--not-black);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            transform: scale(var(--thumb-scale));
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--not-black);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            transform: scale(var(--thumb-scale));
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Collapsible Sections */
+        .collapsible-section {
+            margin-top: 15px;
+            padding: 15px 15px 25px 15px;
+            background: white;
+            border-radius: 15px;
+            border: 3px solid var(--not-black);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+        }
+
+        .section-header:hover {
+            opacity: 0.8;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-toggle {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary);
+            transition: transform 0.2s ease;
+        }
+
+        .section-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            max-height: 500px;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            margin-top: -10px;
+        }
+
+        /* Timer Controls */
+        .timer-controls {
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-family: 'Quicksand', monospace;
+        }
+
+        .timer-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        #timer-minutes {
+            width: 60px;
+            padding: 5px;
+            border: 2px solid var(--not-black);
+            border-radius: 8px;
+            background: var(--not-white);
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Settings Menu */
+        .settings-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .settings-button {
+            background: white;
+            color: var(--not-black);
+            border: 3px solid var(--not-black);
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-button:hover {
+            background: var(--not-black);
+            color: white;
+        }
+
+        .settings-dropdown {
+            position: absolute;
+            top: 40px;
+            right: 0;
+            background: var(--not-white);
+            border: 2px solid var(--not-black);
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .settings-dropdown.show {
+            display: block;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .settings-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
         /* Responsive adjustments for different window modes */
         @media (max-height: 250px) {
-            body { padding: 5px; }
-            .container { display: flex; flex-direction: row; gap: 15px; align-items: center; justify-content: flex-start; }
+            body { padding: 3px; overflow: hidden; }
+            .container { 
+                display: grid;
+                grid-template-columns: 160px 1fr;
+                grid-template-rows: auto auto 1fr;
+                gap: 8px;
+                height: 100vh;
+                box-sizing: border-box;
+                grid-template-areas: 
+                    "oscilloscope header"
+                    "oscilloscope status" 
+                    "oscilloscope tools";
+            }
+            
             .oscilloscope-container { 
-                width: 180px; 
-                height: 180px; 
-                margin: 0 10px 0 0;
+                grid-area: oscilloscope;
+                width: 160px; 
+                height: 160px; 
+                margin: 0;
+                align-self: start;
+            }
+            #oscilloscope-canvas { width: 160px; height: 160px; }
+            .breathing-core { width: 70px; height: 70px; }
+            
+            .control-panel { 
+                display: contents; /* Make children participate in parent grid */
+            }
+            
+            /* Header area - title and settings */
+            .control-panel > div:first-child {
+                grid-area: header;
+                margin: 0;
+            }
+            h1 { font-size: 14px; margin: 0; }
+            .settings-button { width: 22px; height: 22px; font-size: 11px; }
+            
+            /* Status badge */
+            .badge { 
+                grid-area: status;
+                display: block; 
+                margin: 0; 
+                font-size: 11px; 
+                padding: 3px 8px; 
+                align-self: start;
+            }
+            
+            /* Tools area - sections in a row */
+            .tools-container {
+                grid-area: tools;
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                align-items: flex-start;
+            }
+            
+            /* Compact sections for horizontal mode */
+            .collapsible-section { 
+                margin: 0;
+                padding: 8px; 
+                min-width: 140px;
                 flex-shrink: 0;
             }
-            #oscilloscope-canvas { width: 180px; height: 180px; }
-            .breathing-core { width: 80px; height: 80px; }
-            .control-panel { margin-top: 0; text-align: left; flex-grow: 1; }
-            h1 { font-size: 16px; margin: 0; }
-            .badge { display: block; margin: 5px 0; }
-            .controls { gap: 5px; margin-top: 10px; }
-            button { padding: 5px 10px; font-size: 12px; }
+            .section-header { margin-bottom: 4px; }
+            .section-title { font-size: 11px; }
+            .section-toggle { font-size: 12px; }
+            
+            /* Expanded content flows horizontally within sections */
+            .noise-controls { 
+                display: flex;
+                flex-direction: row;
+                gap: 12px;
+                margin: 6px 0;
+                padding: 0;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
+            .noise-item { 
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                min-width: 70px;
+                flex-shrink: 0;
+            }
+            .noise-label { 
+                font-size: 9px; 
+                text-align: center;
+                white-space: nowrap;
+            }
+            .volume-slider { 
+                height: 6px;
+                width: 100%;
+            }
+            .volume-slider::-webkit-slider-thumb {
+                width: 16px;
+                height: 16px;
+            }
+            .volume-slider::-moz-range-thumb {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .timer-controls {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .timer-display { 
+                font-size: 12px; 
+                margin: 0;
+                min-width: 50px;
+                flex-shrink: 0;
+            }
+            .timer-buttons { 
+                display: flex;
+                flex-direction: row;
+                gap: 4px; 
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .timer-buttons button { 
+                padding: 3px 6px; 
+                font-size: 9px; 
+                white-space: nowrap;
+            }
+            #timer-minutes { 
+                width: 45px; 
+                font-size: 9px; 
+                padding: 2px; 
+            }
         }
         
         @media (max-width: 250px) {
@@ -216,17 +536,32 @@
             #oscilloscope-canvas { width: 120px; height: 120px; }
             .breathing-core { width: 50px; height: 50px; }
             h1 { font-size: 14px; margin: 10px 0; }
-            .controls { flex-direction: column; gap: 3px; }
-            button { padding: 8px 12px; font-size: 11px; display: block; width: 90%; margin: 3px auto; }
+            .settings-button { width: 30px; height: 30px; font-size: 14px; }
+            
+            /* Compact sections for vertical mode */
+            .collapsible-section { margin-top: 8px; padding: 8px; }
+            .section-header { margin-bottom: 6px; }
+            .section-title { font-size: 11px; }
+            .section-toggle { font-size: 12px; }
+            
+            /* Vertical mode controls */
+            .noise-controls { 
+                grid-template-columns: 1fr; 
+                gap: 6px;
+            }
+            .noise-label { font-size: 10px; }
+            .volume-slider { height: 4px; }
+            
+            .timer-display { font-size: 12px; margin-bottom: 3px; }
+            .timer-buttons { flex-direction: column; gap: 2px; }
+            .timer-buttons button { width: 95%; margin: 1px auto; padding: 4px; font-size: 10px; }
+            #timer-minutes { width: 95%; margin: 1px auto; font-size: 10px; padding: 2px; }
         }
     </style>
 </head>
 <body>
-    <div class="animated-background">
-        <div class="animated-circle" style="width: 300px; height: 300px; background-color: var(--udu-green); top: 20%; left: 10%;"></div>
-        <div class="animated-circle" style="width: 400px; height: 400px; background-color: var(--candu-blue); top: 50%; left: 70%; animation-delay: 2s;"></div>
-        <div class="animated-circle" style="width: 200px; height: 200px; background-color: var(--perfect-pink); top: 70%; left: 30%; animation-delay: 4s;"></div>
-        <div class="animated-circle" style="width: 350px; height: 350px; background-color: var(--please-purple); top: 10%; left: 60%; animation-delay: 6s;"></div>
+    <div class="animated-background" id="animated-bg">
+        <!-- Background circles will be generated by JavaScript -->
     </div>
 
     <div class="container">
@@ -238,13 +573,83 @@
         
         <!-- Control Panel -->
         <div class="control-panel" id="control-panel">
-            <h1>ucanduit</h1>
+            <div style="display: flex; align-items: center; justify-content: center; position: relative;">
+                <h1 style="text-align: center; flex-grow: 1;">ucanduit</h1>
+                <div class="settings-menu" style="position: absolute; right: 0;">
+                    <div class="settings-button" onclick="toggleSettings()">⚙</div>
+                    <div class="settings-dropdown" id="settings-dropdown">
+                        <div class="settings-item" onclick="resizeHorizontal()">
+                            <span>Horizontal Mode</span>
+                        </div>
+                        <div class="settings-item" onclick="resizeVertical()">
+                            <span>Vertical Mode</span>
+                        </div>
+                        <div class="settings-item" onclick="resetSize()">
+                            <span>Reset Size</span>
+                        </div>
+                        <div class="settings-item" onclick="toggleDemo()">
+                            <span id="demo-setting-text">Toggle Demo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="badge badge-success" id="status-badge">Assistant Ready</div>
-            <div class="controls">
-                <button onclick="resizeHorizontal()">Horizontal</button>
-                <button onclick="resizeVertical()">Vertical</button>
-                <button onclick="resetSize()">Reset</button>
-                <button onclick="toggleDemo()" id="demo-toggle">Toggle Demo</button>
+            
+            <div class="tools-container">
+                <!-- Timer Section -->
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('timer')">
+                        <div class="section-title">⏱️ Timer</div>
+                        <div class="section-toggle collapsed" id="timer-toggle">▼</div>
+                    </div>
+                    <div class="section-content collapsed" id="timer-content">
+                        <div class="timer-controls" id="timer-controls">
+                            <div class="timer-display" id="timer-display">25:00</div>
+                            <div class="timer-buttons">
+                                <button onclick="startTimer()">Start</button>
+                                <button onclick="pauseTimer()">Pause</button>
+                                <button onclick="resetTimer()">Reset</button>
+                                <input type="number" id="timer-minutes" min="1" max="120" value="25" 
+                                       onchange="setTimerMinutes(this.value)" placeholder="min">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ambient Sounds Section -->
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('sounds')">
+                        <div class="section-title">🎵 Ambient Sounds</div>
+                        <div class="section-toggle collapsed" id="sounds-toggle">▼</div>
+                    </div>
+                    <div class="section-content collapsed" id="sounds-content">
+                        <div class="noise-controls" id="noise-controls">
+                            <div class="noise-item">
+                                <div class="noise-label">Rain</div>
+                                <input type="range" class="volume-slider" id="rain-volume" min="0" max="100" value="0" 
+                                       oninput="updateNoiseVolume('rain', this.value)">
+                            </div>
+                            <div class="noise-item">
+                                <div class="noise-label">Coffee Shop</div>
+                                <input type="range" class="volume-slider" id="cafe-volume" min="0" max="100" value="0"
+                                       oninput="updateNoiseVolume('cafe', this.value)">
+                            </div>
+                            <div class="noise-item">
+                                <div class="noise-label">Forest</div>
+                                <input type="range" class="volume-slider" id="forest-volume" min="0" max="100" value="0"
+                                       oninput="updateNoiseVolume('forest', this.value)">
+                            </div>
+                            <div class="noise-item">
+                                <div class="noise-label">Ocean</div>
+                                <input type="range" class="volume-slider" id="ocean-volume" min="0" max="100" value="0"
+                                       oninput="updateNoiseVolume('ocean', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Future tools sections will go here -->
             </div>
         </div>
     </div>
@@ -487,14 +892,453 @@
                 const statusText = oscilloscope.demoMode ? 'Demo ON' : 'Demo OFF';
                 document.getElementById('status-badge').textContent = `OssC Active - ${statusText}`;
                 document.getElementById('status-badge').className = oscilloscope.demoMode ? 'badge badge-primary' : 'badge badge-success';
+                
+                // Update settings menu text
+                document.getElementById('demo-setting-text').textContent = oscilloscope.demoMode ? 'Disable Demo' : 'Enable Demo';
             }
         };
         
+        // Settings menu functions
+        window.toggleSettings = function() {
+            const dropdown = document.getElementById('settings-dropdown');
+            dropdown.classList.toggle('show');
+        };
+        
+        // Collapsible section functions
+        window.toggleSection = function(sectionName) {
+            const content = document.getElementById(sectionName + '-content');
+            const toggle = document.getElementById(sectionName + '-toggle');
+            
+            content.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        };
+        
+        // Close settings dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const settingsMenu = document.querySelector('.settings-menu');
+            const dropdown = document.getElementById('settings-dropdown');
+            
+            if (!settingsMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        // Randomize background on startup
+        function randomizeBackground() {
+            const colors = ['var(--udu-green)', 'var(--candu-blue)', 'var(--woohoo-red)', 
+                          'var(--perfect-pink)', 'var(--oh-orange)', 'var(--please-purple)'];
+            const bg = document.getElementById('animated-bg');
+            bg.innerHTML = ''; // Clear existing circles
+            
+            // Generate 3-6 random circles
+            const numCircles = 3 + Math.floor(Math.random() * 4);
+            
+            for (let i = 0; i < numCircles; i++) {
+                const circle = document.createElement('div');
+                circle.className = 'animated-circle';
+                
+                // Random size (150px - 500px)
+                const size = 150 + Math.floor(Math.random() * 350);
+                
+                // Random position (10% - 80% to stay mostly on screen)
+                const top = 10 + Math.floor(Math.random() * 70);
+                const left = 10 + Math.floor(Math.random() * 70);
+                
+                // Random color
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Random animation delay (0-8 seconds)
+                const delay = Math.random() * 8;
+                
+                circle.style.cssText = `
+                    width: ${size}px; 
+                    height: ${size}px; 
+                    background-color: ${color}; 
+                    top: ${top}%; 
+                    left: ${left}%; 
+                    animation-delay: ${delay}s;
+                `;
+                
+                bg.appendChild(circle);
+            }
+        }
+        
         // Initialize when page loads
-        window.addEventListener('DOMContentLoaded', initializeWindow);
+        window.addEventListener('DOMContentLoaded', () => {
+            randomizeBackground();
+            initializeWindow();
+        });
     </script>
     
     <script>
+        // Timer System
+        class TimerSystem {
+            constructor() {
+                this.totalSeconds = 25 * 60; // Default 25 minutes
+                this.remainingSeconds = this.totalSeconds;
+                this.isRunning = false;
+                this.intervalId = null;
+                this.displayElement = document.getElementById('timer-display');
+                this.onTimerUpdate = null; // Callback for visual feedback
+                this.onTimerComplete = null; // Callback for completion
+            }
+            
+            formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            updateDisplay() {
+                if (this.displayElement) {
+                    this.displayElement.textContent = this.formatTime(this.remainingSeconds);
+                }
+                
+                // Call visual feedback callback
+                if (this.onTimerUpdate) {
+                    const progress = 1 - (this.remainingSeconds / this.totalSeconds);
+                    this.onTimerUpdate(progress, this.isRunning);
+                }
+            }
+            
+            start() {
+                if (this.isRunning || this.remainingSeconds === 0) return;
+                
+                this.isRunning = true;
+                this.intervalId = setInterval(() => {
+                    this.remainingSeconds--;
+                    this.updateDisplay();
+                    
+                    if (this.remainingSeconds === 0) {
+                        this.complete();
+                    }
+                }, 1000);
+                
+                // Update status badge
+                document.getElementById('status-badge').textContent = 'Timer Running';
+                document.getElementById('status-badge').className = 'badge badge-warning';
+            }
+            
+            pause() {
+                if (!this.isRunning) return;
+                
+                this.isRunning = false;
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+                
+                // Update status badge
+                document.getElementById('status-badge').textContent = 'Timer Paused';
+                document.getElementById('status-badge').className = 'badge badge-accent';
+            }
+            
+            reset() {
+                this.pause();
+                this.remainingSeconds = this.totalSeconds;
+                this.updateDisplay();
+                
+                // Update status badge
+                document.getElementById('status-badge').textContent = 'Timer Ready';
+                document.getElementById('status-badge').className = 'badge badge-success';
+            }
+            
+            setDuration(minutes) {
+                this.pause();
+                this.totalSeconds = minutes * 60;
+                this.remainingSeconds = this.totalSeconds;
+                this.updateDisplay();
+            }
+            
+            complete() {
+                this.isRunning = false;
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+                
+                // Update status badge
+                document.getElementById('status-badge').textContent = 'Timer Complete!';
+                document.getElementById('status-badge').className = 'badge badge-success';
+                
+                // Play completion sound (using Web Audio API)
+                this.playCompletionSound();
+                
+                // Call completion callback
+                if (this.onTimerComplete) {
+                    this.onTimerComplete();
+                }
+                
+                // Auto-reset after a few seconds
+                setTimeout(() => {
+                    this.reset();
+                }, 3000);
+            }
+            
+            playCompletionSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Create a pleasant completion tone
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    // Pleasant bell-like tone
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (error) {
+                    console.log('Could not play completion sound:', error);
+                }
+            }
+        }
+        
+        // Global timer instance
+        let timer = new TimerSystem();
+        
+        // Global timer functions
+        window.startTimer = function() {
+            timer.start();
+        };
+        
+        window.pauseTimer = function() {
+            timer.pause();
+        };
+        
+        window.resetTimer = function() {
+            timer.reset();
+        };
+        
+        window.setTimerMinutes = function(minutes) {
+            const mins = Math.max(1, Math.min(120, parseInt(minutes) || 25));
+            timer.setDuration(mins);
+            // Update the input field to reflect the clamped value
+            document.getElementById('timer-minutes').value = mins;
+        };
+
+        // Ambient Noise System
+        class AmbientNoiseSystem {
+            constructor() {
+                this.audioContext = null;
+                this.masterGain = null;
+                this.sounds = {};
+                this.isInitialized = false;
+                
+                // CC0 sound loops (using generated tones for POC - replace with actual files later)
+                this.soundConfigs = {
+                    rain: { frequency: 100, type: 'white', baseGain: 0.3 },
+                    cafe: { frequency: 200, type: 'pink', baseGain: 0.2 },
+                    forest: { frequency: 150, type: 'brown', baseGain: 0.25 },
+                    ocean: { frequency: 80, type: 'white', baseGain: 0.35 }
+                };
+            }
+            
+            async initialize() {
+                if (this.isInitialized) return;
+                
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.masterGain = this.audioContext.createGain();
+                    this.masterGain.connect(this.audioContext.destination);
+                    
+                    // Create each ambient sound
+                    for (const [name, config] of Object.entries(this.soundConfigs)) {
+                        this.sounds[name] = this.createAmbientSound(config);
+                    }
+                    
+                    this.isInitialized = true;
+                    console.log('Ambient noise system initialized');
+                } catch (error) {
+                    console.error('Failed to initialize ambient noise system:', error);
+                }
+            }
+            
+            createAmbientSound(config) {
+                const sound = {
+                    oscillator: null,
+                    gainNode: null,
+                    filterNode: null,
+                    isPlaying: false,
+                    config: config
+                };
+                
+                // Create gain node for this sound
+                sound.gainNode = this.audioContext.createGain();
+                sound.gainNode.gain.value = 0; // Start muted
+                
+                // Create filter for shaping the noise
+                sound.filterNode = this.audioContext.createBiquadFilter();
+                sound.filterNode.type = 'lowpass';
+                sound.filterNode.frequency.value = config.frequency;
+                sound.filterNode.Q.value = 0.5;
+                
+                // Connect: oscillator -> filter -> gain -> master
+                sound.filterNode.connect(sound.gainNode);
+                sound.gainNode.connect(this.masterGain);
+                
+                return sound;
+            }
+            
+            generateNoise(type) {
+                // Create longer buffer for smoother looping
+                const bufferSize = this.audioContext.sampleRate * 2; // 2 seconds of audio
+                const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                if (type === 'white') {
+                    // Generate smooth white noise
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = (Math.random() * 2 - 1) * 0.5;
+                    }
+                } else if (type === 'pink') {
+                    // Generate pink noise with proper filtering
+                    let b0, b1, b2, b3, b4, b5, b6;
+                    b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+                    for (let i = 0; i < bufferSize; i++) {
+                        const white = Math.random() * 2 - 1;
+                        b0 = 0.99886 * b0 + white * 0.0555179;
+                        b1 = 0.99332 * b1 + white * 0.0750759;
+                        b2 = 0.96900 * b2 + white * 0.1538520;
+                        b3 = 0.86650 * b3 + white * 0.3104856;
+                        b4 = 0.55000 * b4 + white * 0.5329522;
+                        b5 = -0.7616 * b5 - white * 0.0168980;
+                        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+                        b6 = white * 0.115926;
+                    }
+                } else if (type === 'brown') {
+                    // Generate brown noise with smoother characteristics
+                    let lastOut = 0;
+                    for (let i = 0; i < bufferSize; i++) {
+                        const white = Math.random() * 2 - 1;
+                        data[i] = (lastOut + (0.02 * white)) / 1.02;
+                        lastOut = data[i];
+                        data[i] *= 2.0; // Reduced amplitude for smoother sound
+                    }
+                }
+                
+                // Apply fade in/out to prevent clicks on loop
+                const fadeLength = Math.floor(bufferSize * 0.01); // 1% fade
+                for (let i = 0; i < fadeLength; i++) {
+                    const fadeIn = i / fadeLength;
+                    const fadeOut = (fadeLength - i) / fadeLength;
+                    data[i] *= fadeIn;
+                    data[bufferSize - 1 - i] *= fadeOut;
+                }
+                
+                return buffer;
+            }
+            
+            startSound(soundName) {
+                if (!this.isInitialized || !this.sounds[soundName]) return;
+                
+                const sound = this.sounds[soundName];
+                if (sound.isPlaying) return;
+                
+                // Create buffer source for looping
+                sound.oscillator = this.audioContext.createBufferSource();
+                sound.oscillator.buffer = this.generateNoise(sound.config.type);
+                sound.oscillator.loop = true;
+                sound.oscillator.connect(sound.filterNode);
+                sound.oscillator.start();
+                sound.isPlaying = true;
+            }
+            
+            stopSound(soundName) {
+                if (!this.sounds[soundName]) return;
+                
+                const sound = this.sounds[soundName];
+                if (sound.oscillator && sound.isPlaying) {
+                    sound.oscillator.stop();
+                    sound.oscillator = null;
+                    sound.isPlaying = false;
+                }
+            }
+            
+            setVolume(soundName, volume) {
+                if (!this.sounds[soundName]) return;
+                
+                const sound = this.sounds[soundName];
+                const normalizedVolume = (volume / 100) * sound.config.baseGain;
+                
+                if (volume > 0 && !sound.isPlaying) {
+                    this.startSound(soundName);
+                }
+                
+                if (sound.gainNode) {
+                    sound.gainNode.gain.setValueAtTime(normalizedVolume, this.audioContext.currentTime);
+                }
+                
+                if (volume === 0 && sound.isPlaying) {
+                    this.stopSound(soundName);
+                }
+            }
+            
+            // Get combined audio data for oscilloscope visualization
+            getCombinedAudioData() {
+                const combinedData = new Uint8Array(256);
+                let hasActiveSound = false;
+                const time = Date.now() * 0.001;
+                
+                for (const [name, sound] of Object.entries(this.sounds)) {
+                    if (sound.isPlaying && sound.gainNode.gain.value > 0) {
+                        hasActiveSound = true;
+                        const volume = sound.gainNode.gain.value * 255;
+                        const baseFreq = sound.config.frequency / 100;
+                        
+                        // Generate realistic frequency spectrum based on noise type
+                        for (let i = 0; i < combinedData.length; i++) {
+                            const freq = (i / combinedData.length) * 10; // 0-10 normalized freq range
+                            let amplitude = 0;
+                            
+                            if (sound.config.type === 'white') {
+                                // White noise has flat spectrum with some variation
+                                amplitude = volume * (0.8 + 0.4 * Math.sin(freq * 3 + time * 2));
+                            } else if (sound.config.type === 'pink') {
+                                // Pink noise falls off with frequency
+                                amplitude = volume * (1.2 / (freq + 1)) * (0.9 + 0.3 * Math.sin(freq * 2 + time * 1.5));
+                            } else if (sound.config.type === 'brown') {
+                                // Brown noise falls off more steeply
+                                amplitude = volume * (1.5 / ((freq + 0.5) * (freq + 0.5))) * (0.95 + 0.2 * Math.sin(freq + time));
+                            }
+                            
+                            // Add some realistic variation and blend sounds
+                            combinedData[i] = Math.min(255, combinedData[i] + amplitude * (0.8 + 0.4 * Math.random()));
+                        }
+                    }
+                }
+                
+                return hasActiveSound ? combinedData : null;
+            }
+        }
+        
+        // Global ambient noise system instance
+        let ambientNoise = new AmbientNoiseSystem();
+        
+        // Global function for volume sliders
+        window.updateNoiseVolume = async function(soundName, volume) {
+            if (!ambientNoise.isInitialized) {
+                await ambientNoise.initialize();
+            }
+            ambientNoise.setVolume(soundName, parseInt(volume));
+            
+            // Scale slider thumb based on volume
+            const slider = document.getElementById(soundName + '-volume');
+            if (slider) {
+                const scale = 1 + (volume / 100) * 0.5; // Scale from 1x to 1.5x
+                slider.style.setProperty('--thumb-scale', scale);
+            }
+        };
+
         // Circular Oscilloscope Implementation - Preset 1 (Original)
         class CircularOscilloscope_Preset1 {
             constructor(canvasId) {
@@ -801,7 +1645,20 @@
             }
             
             updateWaveformData() {
-                if (this.analyser && this.isPlaying) {
+                // Check for ambient noise data first
+                const ambientData = window.ambientNoise ? window.ambientNoise.getCombinedAudioData() : null;
+                
+                if (ambientData) {
+                    // Use ambient noise data for visualization
+                    if (this.dataArray.length !== ambientData.length) {
+                        this.dataArray = new Uint8Array(ambientData.length);
+                        this.bufferLength = ambientData.length;
+                    }
+                    this.dataArray.set(ambientData);
+                    this.hasActiveAudio = true;
+                    
+                } else if (this.analyser && this.isPlaying) {
+                    // Use microphone data
                     this.analyser.getByteFrequencyData(this.dataArray);
                     
                     // Detect if there's active audio
@@ -987,6 +1844,36 @@
         let oscilloscope;
         window.addEventListener('DOMContentLoaded', () => {
             oscilloscope = new OssC('oscilloscope-canvas');
+            
+            // Connect timer visual feedback to oscilloscope
+            timer.onTimerUpdate = (progress, isRunning) => {
+                if (oscilloscope && isRunning) {
+                    // Modify breathing circles during timer sessions
+                    oscilloscope.breathingCircles.forEach((circle, index) => {
+                        // Slightly slower breathing during focus sessions
+                        circle.breathingSpeed = 0.015 + (Math.random() * 0.01);
+                        // Enhance colors based on progress
+                        circle.opacity = 0.4 + (progress * 0.4);
+                    });
+                }
+            };
+            
+            timer.onTimerComplete = () => {
+                if (oscilloscope) {
+                    // Flash effect on completion
+                    const originalOpacity = oscilloscope.breathingCircles.map(c => c.opacity);
+                    oscilloscope.breathingCircles.forEach(circle => {
+                        circle.opacity = 1.0; // Full brightness
+                    });
+                    
+                    // Restore after flash
+                    setTimeout(() => {
+                        oscilloscope.breathingCircles.forEach((circle, index) => {
+                            circle.opacity = originalOpacity[index];
+                        });
+                    }, 500);
+                }
+            };
         });
         
         // Handle window resize to update oscilloscope canvas

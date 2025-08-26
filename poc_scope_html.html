@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Assistant - POC Scope</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --udu-green: #4ecf9d;
+            --candu-blue: #3f88c5;
+            --woohoo-red: #d72638;
+            --perfect-pink: #FF6B9F;
+            --oh-orange: #FF9B54;
+            --please-purple: #B06BFF;
+            --not-white: #F5F5F5;
+            --not-black: #2a2d34;
+            --background: var(--not-white);
+            --text-primary: var(--not-black);
+            --text-secondary: #6c757d;
+            --success: var(--udu-green);
+            --danger: var(--woohoo-red);
+            --primary: var(--candu-blue);
+            --accent: var(--please-purple);
+            --warning: var(--oh-orange);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .animated-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .animated-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.3;
+            animation: pulse 20s infinite alternate ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                filter: blur(40px);
+            }
+            100% {
+                transform: scale(1.5);
+                filter: blur(60px);
+            }
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            color: var(--not-black);
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        li {
+            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: var(--not-white);
+            border-radius: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 8px solid var(--not-black);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 700;
+            margin: 2px;
+            border: 2px solid var(--not-black);
+        }
+        
+        .badge-success { background: var(--success); color: white; }
+        .badge-primary { background: var(--primary); color: white; }
+        .badge-warning { background: var(--warning); color: white; }
+        .badge-danger { background: var(--danger); color: white; }
+        .badge-accent { background: var(--accent); color: white; }
+        
+        .cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .card {
+            background: var(--not-white);
+            border-radius: 25px;
+            overflow: hidden;
+            flex: 1;
+            min-width: 250px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 8px solid var(--not-black);
+        }
+        
+        .card-header {
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 2px solid var(--not-black);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .table th {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            font-weight: 700;
+            text-align: left;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--not-black);
+        }
+        
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 25px;
+            margin: 15px 0;
+            font-weight: 600;
+            border: 4px solid;
+        }
+        
+        .alert-info {
+            background: rgba(63, 136, 197, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .assistant-preview {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, var(--perfect-pink), var(--oh-orange));
+            border-radius: 20px;
+            margin: 20px 0;
+            border: 4px solid var(--not-black);
+            color: white;
+        }
+        
+        .circle-demo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--not-black);
+            background: transparent;
+            margin: 0 auto 15px;
+            position: relative;
+        }
+        
+        .circle-demo::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--udu-green), var(--candu-blue));
+            filter: blur(8px);
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        .checklist {
+            list-style: none;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            position: relative;
+        }
+        
+        .checklist li:before {
+            content: "☐";
+            margin-right: 10px;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .badge-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-background">
+        <div class="animated-circle" style="width: 300px; height: 300px; background-color: var(--udu-green); top: 20%; left: 10%;"></div>
+        <div class="animated-circle" style="width: 400px; height: 400px; background-color: var(--candu-blue); top: 50%; left: 70%; animation-delay: 2s;"></div>
+        <div class="animated-circle" style="width: 200px; height: 200px; background-color: var(--perfect-pink); top: 70%; left: 30%; animation-delay: 4s;"></div>
+        <div class="animated-circle" style="width: 350px; height: 350px; background-color: var(--please-purple); top: 10%; left: 60%; animation-delay: 6s;"></div>
+    </div>
+
+    <div class="container">
+        <h1>🎯 Productivity Assistant - POC Scope</h1>
+        
+        <section class="section">
+            <h2>POC Objectives</h2>
+            <p>Validate core technical feasibility and basic user experience before committing to full development.</p>
+            
+            <div class="alert alert-info">
+                <strong>Goal:</strong> Create a working prototype that demonstrates the core concept and validates technical choices.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Technical Foundation</h2>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🦀 Framework</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Tauri (Rust backend + HTML/CSS/JS frontend)</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🖥️ Platforms</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>macOS and Windows</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🪟 Window</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Always-on-top, resizable rectangle</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>💾 Storage</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Local JSON files (no cloud sync for POC)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Core Features (POC)</h2>
+
+            <h3>1. Basic Application Window</h3>
+            <ul>
+                <li>Always-on-top rectangular window</li>
+                <li>Configurable size (targeting ~15% of screen width/height)</li>
+                <li>Basic window controls (minimize, close)</li>
+                <li>Semi-transparent background with UI styling</li>
+            </ul>
+
+            <h3>2. Virtual Assistant - Circular Oscilloscope</h3>
+            <div class="assistant-preview">
+                <div class="circle-demo"></div>
+                <p style="font-weight: 700;">Assistant Preview: Circular oscilloscope with breathing gradient core</p>
+            </div>
+            
+            <ul>
+                <li><strong>Outer Ring:</strong> Circular oscilloscope responding to ambient audio (radial waveform)</li>
+                <li><strong>Inner Core:</strong> Animated gradient "breathing" effect</li>
+                <li><strong>Audio Sync:</strong> Real-time response to ambient sound mixing</li>
+                <li><strong>Visual Appeal:</strong> Hypnotic, clean aesthetic that indicates sound activity</li>
+            </ul>
+
+            <h3>3. Ambient Noise System</h3>
+            <ul>
+                <li>Multiple CC0 audio loops (rain, coffee shop, nature sounds)</li>
+                <li>Individual volume sliders for each sound</li>
+                <li>Real-time audio mixing</li>
+                <li>Web Audio API integration for assistant visualization</li>
+            </ul>
+
+            <h3>4. Timer Functionality</h3>
+            <ul>
+                <li>Basic countdown timer</li>
+                <li>Start/pause/stop controls</li>
+                <li>Visual feedback on assistant during timer sessions</li>
+                <li>Audio notification when complete</li>
+            </ul>
+
+            <h3>5. UI Structure with Provided Styling</h3>
+            <ul>
+                <li>Clean, minimal interface using provided color palette</li>
+                <li>Quicksand font family throughout</li>
+                <li>Consistent rounded corners and thick borders</li>
+                <li>Animated background with blurred gradient circles</li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>Success Criteria</h2>
+            <ul class="checklist">
+                <li>Application runs stable for 4+ hours without memory issues</li>
+                <li>Window stays properly always-on-top on both platforms</li>
+                <li>Circular oscilloscope animations are smooth and responsive</li>
+                <li>Ambient noise mixing works without audio artifacts</li>
+                <li>Timer functionality works reliably</li>
+                <li>UI feels polished using provided design system</li>
+                <li>Performance impact is negligible during normal use</li>
+            </ul>
+        </section>
+
+        <section class="section">
+            <h2>Performance Targets</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Target</th>
+                        <th>Acceptable</th>
+                        <th>Red Flag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>RAM Usage</td>
+                        <td>&lt; 256MB</td>
+                        <td>&lt; 512MB</td>
+                        <td>&gt; 1GB</td>
+                    </tr>
+                    <tr>
+                        <td>CPU (Idle)</td>
+                        <td>&lt; 1%</td>
+                        <td>&lt; 2%</td>
+                        <td>&gt; 5%</td>
+                    </tr>
+                    <tr>
+                        <td>CPU (Active)</td>
+                        <td>&lt; 3%</td>
+                        <td>&lt; 5%</td>
+                        <td>&gt; 10%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="section">
+            <h2>Explicitly Out of Scope (POC)</h2>
+            <div class="badge-grid">
+                <span class="badge badge-danger">Mini mode / floating widgets</span>
+                <span class="badge badge-danger">To-do lists</span>
+                <span class="badge badge-danger">Habit tracking</span>
+                <span class="badge badge-danger">Quick memos</span>
+                <span class="badge badge-danger">Music player</span>
+                <span class="badge badge-danger">Gamification rewards</span>
+                <span class="badge badge-danger">Cross-device sync</span>
+                <span class="badge badge-danger">Custom window shapes</span>
+                <span class="badge badge-danger">Multiple windows</span>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Technical Risks to Validate</h2>
+            <ul>
+                <li><span class="badge badge-warning">Window Management</span> Tauri always-on-top behavior on both platforms</li>
+                <li><span class="badge badge-warning">Audio Processing</span> Web Audio API performance in Tauri context</li>
+                <li><span class="badge badge-warning">Animation Performance</span> Circular oscilloscope rendering without lag</li>
+                <li><span class="badge badge-warning">Memory Management</span> Long-running application stability</li>
+                <li><span class="badge badge-warning">Cross-Platform</span> Consistent behavior across macOS and Windows</li>
+            </ul>
+        </section>
+    </div>
+</body>
+</html>

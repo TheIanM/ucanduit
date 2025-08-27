@@ -1,6 +1,7 @@
 /**
  * Todo List Tool - ES6 Module
  * Supports multiple lists with add/complete functionality and local storage persistence
+ * Updated: Dark mode support with CSS variables
  */
 
 export class TodoListTool {
@@ -30,20 +31,9 @@ export class TodoListTool {
                     <div class="todo-breadcrumb" style="
                         font-size: 14px;
                         font-weight: 600;
-                        color: #2a2d34;
+                        color: var(--text-primary);
                     "></div>
-                    <button class="add-button" style="
-                        background: white;
-                        color: #2a2d34;
-                        border: 3px solid #2a2d34;
-                        border-radius: 20px;
-                        padding: 6px 12px;
-                        font-size: 12px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        font-family: 'Quicksand', sans-serif;
-                    ">+ Add</button>
+                    <button class="add-button">+ Add</button>
                 </div>
                 
                 <div class="todo-content" style="
@@ -63,46 +53,59 @@ export class TodoListTool {
                     <input type="text" class="new-item-text" placeholder="What needs to be done?" style="
                         width: 100%;
                         padding: 8px 12px;
-                        border: 2px solid #2a2d34;
+                        border: 2px solid var(--text-primary);
                         border-radius: 8px;
                         font-family: 'Quicksand', sans-serif;
                         font-size: 14px;
                         outline: none;
+                        background: var(--not-white);
+                        color: var(--text-primary);
                     ">
                     <div style="margin-top: 8px; text-align: right;">
-                        <button class="cancel-add" style="
-                            background: white;
-                            color: #2a2d34;
-                            border: 3px solid #2a2d34;
-                            border-radius: 20px;
-                            padding: 6px 12px;
-                            font-size: 11px;
-                            font-weight: 700;
-                            cursor: pointer;
-                            margin-right: 5px;
-                            font-family: 'Quicksand', sans-serif;
-                            transition: all 0.2s ease;
-                        ">Cancel</button>
-                        <button class="confirm-add" style="
-                            background: white;
-                            color: #2a2d34;
-                            border: 3px solid #2a2d34;
-                            border-radius: 20px;
-                            padding: 6px 12px;
-                            font-size: 11px;
-                            font-weight: 700;
-                            cursor: pointer;
-                            font-family: 'Quicksand', sans-serif;
-                            transition: all 0.2s ease;
-                        ">Add</button>
+                        <button class="cancel-add">Cancel</button>
+                        <button class="confirm-add">Add</button>
                     </div>
                 </div>
             </div>
             
             <style>
+                .add-button {
+                    background: var(--translucent-bg) !important;
+                    color: var(--text-primary) !important;
+                    border: 3px solid var(--text-primary) !important;
+                    border-radius: 20px !important;
+                    padding: 6px 12px !important;
+                    font-size: 12px !important;
+                    font-weight: 700 !important;
+                    cursor: pointer !important;
+                    transition: all 0.2s ease !important;
+                    font-family: 'Quicksand', sans-serif !important;
+                    backdrop-filter: blur(10px) !important;
+                    -webkit-backdrop-filter: blur(10px) !important;
+                }
+                
+                .cancel-add, .confirm-add {
+                    background: var(--translucent-bg) !important;
+                    color: var(--text-primary) !important;
+                    border: 3px solid var(--text-primary) !important;
+                    border-radius: 20px !important;
+                    padding: 6px 12px !important;
+                    font-size: 11px !important;
+                    font-weight: 700 !important;
+                    cursor: pointer !important;
+                    font-family: 'Quicksand', sans-serif !important;
+                    transition: all 0.2s ease !important;
+                    backdrop-filter: blur(10px) !important;
+                    -webkit-backdrop-filter: blur(10px) !important;
+                }
+                
+                .cancel-add {
+                    margin-right: 5px;
+                }
+                
                 .todo-list-item, .todo-item {
-                    background: white;
-                    border: 2px solid #2a2d34;
+                    background: var(--translucent-bg);
+                    border: 2px solid var(--text-primary);
                     border-radius: 12px;
                     margin-bottom: 8px;
                     padding: 12px 15px;
@@ -110,11 +113,14 @@ export class TodoListTool {
                     transition: all 0.2s ease;
                     font-weight: 600;
                     position: relative;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    color: var(--text-primary);
                 }
                 
                 .todo-list-item:hover, .todo-item:hover {
-                    background: #2a2d34 !important;
-                    color: white !important;
+                    background: var(--text-primary) !important;
+                    color: var(--not-white) !important;
                     transform: translateY(-1px);
                     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 }
@@ -151,15 +157,15 @@ export class TodoListTool {
                 
                 .todo-list-meta {
                     font-size: 12px;
-                    color: #6c757d;
+                    color: var(--text-secondary);
                     font-weight: 500;
                     margin-top: 4px;
                 }
                 
                 .back-button {
-                    background: white;
-                    color: #2a2d34;
-                    border: 3px solid #2a2d34;
+                    background: var(--translucent-bg);
+                    color: var(--text-primary);
+                    border: 3px solid var(--text-primary);
                     border-radius: 20px;
                     padding: 6px 12px;
                     font-size: 11px;
@@ -168,11 +174,13 @@ export class TodoListTool {
                     margin-right: 10px;
                     font-family: 'Quicksand', sans-serif;
                     transition: all 0.2s ease;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
                 }
                 
                 .back-button:hover, .add-button:hover, .cancel-add:hover, .confirm-add:hover {
-                    background: #2a2d34 !important;
-                    color: white !important;
+                    background: var(--text-primary) !important;
+                    color: var(--not-white) !important;
                     transform: translateY(-1px);
                     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 }

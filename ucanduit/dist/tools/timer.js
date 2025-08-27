@@ -33,42 +33,9 @@ export class TimerTool {
                     justify-content: center;
                     flex-wrap: wrap;
                 ">
-                    <button class="timer-start-btn" style="
-                        background: white;
-                        color: #2a2d34;
-                        border: 3px solid #2a2d34;
-                        padding: 10px 20px;
-                        border-radius: 20px;
-                        margin: 5px;
-                        cursor: pointer;
-                        font-weight: 700;
-                        font-family: 'Quicksand', sans-serif;
-                        transition: all 0.2s ease;
-                    ">Start</button>
-                    <button class="timer-pause-btn" style="
-                        background: white;
-                        color: #2a2d34;
-                        border: 3px solid #2a2d34;
-                        padding: 10px 20px;
-                        border-radius: 20px;
-                        margin: 5px;
-                        cursor: pointer;
-                        font-weight: 700;
-                        font-family: 'Quicksand', sans-serif;
-                        transition: all 0.2s ease;
-                    ">Pause</button>
-                    <button class="timer-reset-btn" style="
-                        background: white;
-                        color: #2a2d34;
-                        border: 3px solid #2a2d34;
-                        padding: 10px 20px;
-                        border-radius: 20px;
-                        margin: 5px;
-                        cursor: pointer;
-                        font-weight: 700;
-                        font-family: 'Quicksand', sans-serif;
-                        transition: all 0.2s ease;
-                    ">Reset</button>
+                    <button class="timer-start-btn">Start</button>
+                    <button class="timer-pause-btn">Pause</button>
+                    <button class="timer-reset-btn">Reset</button>
                     <input type="number" class="timer-minutes-input" min="1" max="120" value="25" 
                            placeholder="min" style="
                         width: 60px;
@@ -84,8 +51,23 @@ export class TimerTool {
             </div>
             
             <style>
+                .timer-controls button {
+                    background: rgba(255, 255, 255, 0.2) !important;
+                    color: #2a2d34 !important;
+                    border: 3px solid #2a2d34 !important;
+                    padding: 10px 20px !important;
+                    border-radius: 20px !important;
+                    margin: 5px !important;
+                    cursor: pointer !important;
+                    font-weight: 700 !important;
+                    font-family: 'Quicksand', sans-serif !important;
+                    transition: all 0.2s ease !important;
+                    backdrop-filter: blur(10px) !important;
+                    -webkit-backdrop-filter: blur(10px) !important;
+                }
+                
                 .timer-controls button:hover {
-                    background: #2a2d34 !important;
+                    background: rgba(42, 45, 52, 0.8) !important;
                     color: white !important;
                     transform: translateY(-1px);
                     box-shadow: 0 4px 8px rgba(0,0,0,0.2);

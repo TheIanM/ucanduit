@@ -317,6 +317,18 @@
             background: rgba(0, 0, 0, 0.05);
         }
 
+        .ticker-nav-btn:hover {
+            background: var(--text-primary) !important;
+            color: var(--not-white) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        #status-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
         /* Responsive adjustments for different window modes */
         @media (max-height: 250px) {
             body { padding: 3px; overflow: hidden; }
@@ -354,13 +366,24 @@
             h1 { font-size: 14px; margin: 0; }
             .settings-button { width: 22px; height: 22px; font-size: 11px; }
             
-            .badge { 
+            .status-ticker-container {
                 grid-area: status;
-                display: block; 
-                margin: 0; 
-                font-size: 11px; 
-                padding: 3px 8px; 
+                margin: 0 !important;
+                gap: 4px !important;
                 align-self: start;
+            }
+            
+            .ticker-nav-btn {
+                width: 18px !important;
+                height: 18px !important;
+                font-size: 9px !important;
+                border-width: 1px !important;
+            }
+            
+            #status-badge { 
+                font-size: 10px !important; 
+                padding: 2px 6px !important; 
+                min-width: 120px !important;
             }
             
             .tools-container {
@@ -390,6 +413,23 @@
             .breathing-core { width: 50px; height: 50px; }
             h1 { font-size: 14px; margin: 10px 0; }
             .settings-button { width: 30px; height: 30px; font-size: 14px; }
+            
+            .status-ticker-container {
+                margin: 4px 0 !important;
+                gap: 3px !important;
+            }
+            
+            .ticker-nav-btn {
+                width: 20px !important;
+                height: 20px !important;
+                font-size: 10px !important;
+            }
+            
+            #status-badge {
+                font-size: 11px !important;
+                padding: 3px 6px !important;
+                min-width: 140px !important;
+            }
             
             .collapsible-section { margin-top: 8px; padding: 8px; }
             .section-header { margin-bottom: 6px; }
@@ -433,7 +473,67 @@
                 </div>
             </div>
             
-            <div class="badge badge-success" id="status-badge">Assistant Ready</div>
+            <div class="status-ticker-container" style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                margin: 5px 0;
+            ">
+                <button class="ticker-nav-btn" id="ticker-prev" onclick="statusTicker.prev()" style="
+                    background: var(--translucent-bg);
+                    color: var(--text-primary);
+                    border: 2px solid var(--text-primary);
+                    border-radius: 50%;
+                    width: 22px;
+                    height: 22px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    font-weight: bold;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    padding: 0;
+                    margin: 0;
+                    flex-shrink: 0;
+                ">‹</button>
+                
+                <div class="badge badge-success" id="status-badge" onclick="statusTicker.expandCurrent()" style="
+                    min-width: 160px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    margin: 0;
+                    flex-grow: 1;
+                ">Assistant Ready</div>
+                
+                <button class="ticker-nav-btn" id="ticker-next" onclick="statusTicker.next()" style="
+                    background: var(--translucent-bg);
+                    color: var(--text-primary);
+                    border: 2px solid var(--text-primary);
+                    border-radius: 50%;
+                    width: 22px;
+                    height: 22px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    font-weight: bold;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    padding: 0;
+                    margin: 0;
+                    flex-shrink: 0;
+                ">›</button>
+            </div>
             
             <div class="tools-container">
                 <!-- Timer Section -->
@@ -802,11 +902,210 @@
             }
         }
 
-        // Global functions for tool integration
-        window.updateStatus = function(text, type) {
-            const badge = document.getElementById('status-badge');
-            badge.textContent = text;
-            badge.className = `badge badge-${type}`;
+        // Ticker tape system for status rotation
+        window.statusTicker = {
+            currentIndex: 0,
+            intervalId: null,
+            isManualOverride: false,
+            overrideTimeout: null,
+            
+            items: [
+                {
+                    id: 'ossc-status',
+                    getText: () => {
+                        if (window.oscilloscope) {
+                            return window.oscilloscope.demoMode ? 'OssC - Demo Mode' : 'OssC - Ready';
+                        }
+                        return 'OssC - Initializing';
+                    },
+                    getType: () => {
+                        if (window.oscilloscope) {
+                            return window.oscilloscope.demoMode ? 'primary' : 'success';
+                        }
+                        return 'warning';
+                    }
+                },
+                {
+                    id: 'timer-status',
+                    getText: () => {
+                        const timerTool = window.loadedTools?.timer;
+                        if (timerTool && timerTool.isRunning) {
+                            const mins = Math.floor(timerTool.remainingSeconds / 60);
+                            const secs = timerTool.remainingSeconds % 60;
+                            return `Timer: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                        } else if (timerTool && timerTool.remainingSeconds < timerTool.totalSeconds) {
+                            return 'Timer: Paused';
+                        }
+                        return 'Timer: Ready';
+                    },
+                    getType: () => {
+                        const timerTool = window.loadedTools?.timer;
+                        if (timerTool && timerTool.isRunning) return 'warning';
+                        if (timerTool && timerTool.remainingSeconds < timerTool.totalSeconds) return 'accent';
+                        return 'success';
+                    }
+                },
+                {
+                    id: 'todos-status',
+                    getText: () => {
+                        const todoTool = window.loadedTools?.todos;
+                        if (todoTool) {
+                            const allItems = Object.values(todoTool.lists).flatMap(list => list.items);
+                            const pending = allItems.filter(item => !item.completed).length;
+                            const completed = allItems.filter(item => item.completed).length;
+                            if (pending === 0 && completed === 0) return 'Todos: Empty';
+                            if (pending === 0) return `Todos: All done! (${completed})`;
+                            return `Todos: ${pending} pending`;
+                        }
+                        return 'Todos: Not loaded';
+                    },
+                    getType: () => {
+                        const todoTool = window.loadedTools?.todos;
+                        if (todoTool) {
+                            const allItems = Object.values(todoTool.lists).flatMap(list => list.items);
+                            const pending = allItems.filter(item => !item.completed).length;
+                            if (pending === 0) return 'success';
+                            return 'primary';
+                        }
+                        return 'secondary';
+                    }
+                },
+                {
+                    id: 'ambient-status',  
+                    getText: () => {
+                        if (window.childAmbientNoise && window.childAmbientNoise.getActiveGenerators) {
+                            const active = window.childAmbientNoise.getActiveGenerators();
+                            if (active.length > 0) {
+                                return `Ambient: ${active.join(', ')}`;
+                            }
+                        }
+                        return 'Ambient: Silent';
+                    },
+                    getType: () => {
+                        if (window.childAmbientNoise && window.childAmbientNoise.getActiveGenerators) {
+                            const active = window.childAmbientNoise.getActiveGenerators();
+                            return active.length > 0 ? 'accent' : 'success';
+                        }
+                        return 'success';
+                    }
+                }
+            ],
+            
+            start() {
+                this.update(); // Show first item immediately
+                this.intervalId = setInterval(() => {
+                    if (!this.isManualOverride) {
+                        this.next();
+                    }
+                }, 3000); // Cycle every 3 seconds
+            },
+            
+            stop() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+                if (this.overrideTimeout) {
+                    clearTimeout(this.overrideTimeout);
+                    this.overrideTimeout = null;
+                }
+            },
+            
+            next() {
+                this.currentIndex = (this.currentIndex + 1) % this.items.length;
+                this.update();
+                this.pauseAutoForUserInteraction();
+            },
+            
+            prev() {
+                this.currentIndex = (this.currentIndex - 1 + this.items.length) % this.items.length;
+                this.update();
+                this.pauseAutoForUserInteraction();
+            },
+            
+            // Pause auto-cycling when user manually navigates
+            pauseAutoForUserInteraction() {
+                this.isManualOverride = true;
+                if (this.overrideTimeout) clearTimeout(this.overrideTimeout);
+                this.overrideTimeout = setTimeout(() => {
+                    this.isManualOverride = false;
+                }, 10000); // Resume auto-cycling after 10 seconds of no interaction
+            },
+            
+            update() {
+                const item = this.items[this.currentIndex];
+                const badge = document.getElementById('status-badge');
+                if (badge) {
+                    badge.textContent = item.getText();
+                    badge.className = `badge badge-${item.getType()}`;
+                }
+            },
+            
+            // Allow temporary manual override 
+            setManual(text, type, duration = 3000) {
+                this.isManualOverride = true;
+                const badge = document.getElementById('status-badge');
+                if (badge) {
+                    badge.textContent = text;
+                    badge.className = `badge badge-${type}`;
+                }
+                
+                if (this.overrideTimeout) clearTimeout(this.overrideTimeout);
+                this.overrideTimeout = setTimeout(() => {
+                    this.isManualOverride = false;
+                    this.update(); // Resume normal rotation
+                }, duration);
+            },
+            
+            // Expand the tool section related to current ticker item
+            expandCurrent() {
+                const currentItem = this.items[this.currentIndex];
+                this.pauseAutoForUserInteraction();
+                
+                // Map ticker items to their corresponding tool sections
+                const sectionMap = {
+                    'timer-status': 'timer',
+                    'todos-status': 'todos', 
+                    'ambient-status': 'sounds',
+                    'ossc-status': null // OssC doesn't have a collapsible section
+                };
+                
+                const sectionName = sectionMap[currentItem.id];
+                if (sectionName) {
+                    // Expand the corresponding section
+                    const content = document.getElementById(sectionName + '-content');
+                    const toggle = document.getElementById(sectionName + '-toggle');
+                    
+                    if (content && content.classList.contains('collapsed')) {
+                        // Use the existing toggleSection function
+                        if (window.toggleSection) {
+                            window.toggleSection(sectionName);
+                        }
+                    }
+                    
+                    // Show feedback that the section was expanded
+                    this.setManual(`Expanded ${sectionName} section`, 'primary', 2000);
+                } else if (currentItem.id === 'ossc-status') {
+                    // For OssC, toggle demo mode as an interaction
+                    if (window.toggleDemo) {
+                        window.toggleDemo();
+                    }
+                } else {
+                    // Generic feedback for items without sections
+                    this.setManual('No expandable section', 'secondary', 1500);
+                }
+            }
+        };
+        
+        // Legacy function - now routes through ticker system
+        window.updateStatus = function(text, type, duration) {
+            if (duration === undefined) {
+                // Permanent override (for backwards compatibility)
+                window.statusTicker.setManual(text, type, 10000);
+            } else {
+                // Temporary override
+                window.statusTicker.setManual(text, type, duration);
+            }
         };
         
         window.timerUpdate = function(progress, isRunning) {
@@ -911,6 +1210,11 @@
             initializeDarkMode();
             randomizeBackground();
             initializeWindow();
+            
+            // Start ticker after a brief delay to let everything initialize
+            setTimeout(() => {
+                window.statusTicker.start();
+            }, 1000);
         });
     </script>
     

@@ -161,9 +161,9 @@ export class TimerTool {
             }
         }, 1000);
         
-        // Update parent status
+        // Update parent status briefly, then return to ticker rotation
         if (window.updateStatus) {
-            window.updateStatus('Timer Running', 'warning');
+            window.updateStatus('Timer Started', 'warning', 2000);
         }
     }
     
@@ -176,9 +176,9 @@ export class TimerTool {
             this.intervalId = null;
         }
         
-        // Update parent status
+        // Update parent status briefly, then return to ticker rotation
         if (window.updateStatus) {
-            window.updateStatus('Timer Paused', 'accent');
+            window.updateStatus('Timer Paused', 'accent', 2000);
         }
     }
     
@@ -187,9 +187,9 @@ export class TimerTool {
         this.remainingSeconds = this.totalSeconds;
         this.updateDisplay();
         
-        // Update parent status
+        // Update parent status briefly, then return to ticker rotation
         if (window.updateStatus) {
-            window.updateStatus('Timer Ready', 'success');
+            window.updateStatus('Timer Reset', 'success', 2000);
         }
     }
     
@@ -214,9 +214,9 @@ export class TimerTool {
             this.intervalId = null;
         }
         
-        // Update parent status
+        // Update parent status briefly, then return to ticker rotation
         if (window.updateStatus) {
-            window.updateStatus('Timer Complete!', 'success');
+            window.updateStatus('Timer Complete!', 'success', 4000);
         }
         
         // Play completion sound

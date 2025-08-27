@@ -18,105 +18,101 @@ pub struct DirectoryContents {
     pub count: usize,
 }
 
-// Audio file extensions we support
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AudioDirectory {
+    pub name: String,
+    pub path: String,
+    pub file_count: usize,
+}
+
 const SUPPORTED_AUDIO_EXTENSIONS: &[&str] = &["mp3", "wav", "ogg", "m4a", "aac", "flac", "wma"];
 
 #[tauri::command]
-async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContents, String> {
-    println!("🔍 Scanning audio directory: {}", directory_path);
+async fn scan_audio_directories() -> Result<Vec<AudioDirectory>, String> {
+    let current_dir = std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
+    let project_root = current_dir.parent().ok_or("Cannot find project root")?;
+    let audio_path = project_root.join("public").join("audio");
     
-    // Resolve relative paths relative to the app's resource directory
-    let resolved_path = if directory_path.starts_with("./") {
-        // Remove the "./" prefix and resolve relative to app resources
-        let relative_part = &directory_path[2..];
-        let app_dir = std::env::current_exe()
-            .map(|exe_path| exe_path.parent().unwrap().to_path_buf())
-            .unwrap_or_else(|_| std::env::current_dir().unwrap());
+    if !audio_path.exists() {
+        return Err("public/audio directory does not exist".to_string());
+    }
+    
+    let mut audio_directories = Vec::new();
+    
+    for entry in fs::read_dir(&audio_path).map_err(|e| format!("Failed to read audio dir: {}", e))? {
+        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let entry_path = entry.path();
         
-        println!("🔍 App directory: {:?}", app_dir);
-        println!("🔍 Current directory: {:?}", std::env::current_dir());
-        
-        // Try different possible locations for the audio folder
-        let possible_paths = vec![
-            app_dir.join(relative_part),                    // Same dir as executable
-            app_dir.join("dist").join(relative_part),       // dist subfolder
-            app_dir.parent().unwrap().join("dist").join(relative_part), // parent/dist
-            app_dir.parent().unwrap().join(relative_part),  // parent directory
-            std::env::current_dir().unwrap().join("dist").join(relative_part), // current/dist
-            std::env::current_dir().unwrap().join(relative_part), // current directory
-            std::env::current_dir().unwrap().parent().unwrap().join(relative_part), // current parent
-        ];
-        
-        let mut found_path = None;
-        for candidate in possible_paths {
-            println!("🔍 Checking path: {:?}", candidate);
-            if candidate.exists() {
-                println!("✅ Found audio directory at: {:?}", candidate);
-                found_path = Some(candidate);
-                break;
+        if entry_path.is_dir() {
+            let dir_name = entry_path.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown")
+                .to_string();
+            
+            let audio_file_count = count_audio_files(&entry_path);
+            
+            if audio_file_count > 0 {
+                audio_directories.push(AudioDirectory {
+                    name: dir_name,
+                    path: format!("/audio/{}", entry_path.file_name().unwrap().to_string_lossy()),
+                    file_count: audio_file_count,
+                });
             }
         }
-        
-        found_path.unwrap_or_else(|| Path::new(&directory_path).to_path_buf())
+    }
+    
+    Ok(audio_directories)
+}
+
+#[tauri::command]
+async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContents, String> {
+    let current_dir = std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
+    let project_root = current_dir.parent().ok_or("Cannot find project root")?;
+    let path = if directory_path.starts_with('/') {
+        project_root.join("public").join(&directory_path[1..])
     } else {
-        Path::new(&directory_path).to_path_buf()
+        project_root.join("public").join(&directory_path)
     };
     
-    let path = &resolved_path;
     if !path.exists() {
-        return Err(format!("Directory does not exist: {} (resolved to: {:?})", directory_path, resolved_path));
+        return Err(format!("Directory does not exist: {}", directory_path));
     }
     
     if !path.is_dir() {
-        return Err(format!("Path is not a directory: {} (resolved to: {:?})", directory_path, resolved_path));
+        return Err(format!("Path is not a directory: {}", directory_path));
     }
     
     let mut audio_files = Vec::new();
     
-    match fs::read_dir(path) {
-        Ok(entries) => {
-            for entry in entries {
-                match entry {
-                    Ok(dir_entry) => {
-                        let file_path = dir_entry.path();
-                        if file_path.is_file() {
-                            if let Some(extension) = file_path.extension() {
-                                if let Some(ext_str) = extension.to_str() {
-                                    let ext_lower = ext_str.to_lowercase();
-                                    if SUPPORTED_AUDIO_EXTENSIONS.contains(&ext_lower.as_str()) {
-                                        if let Some(file_name) = file_path.file_name() {
-                                            if let Some(name_str) = file_name.to_str() {
-                                                let metadata = fs::metadata(&file_path);
-                                                let size = metadata.map(|m| m.len()).unwrap_or(0);
-                                                
-                                                audio_files.push(AudioFile {
-                                                    name: name_str.to_string(),
-                                                    path: file_path.to_string_lossy().to_string(),
-                                                    size,
-                                                    extension: ext_lower,
-                                                });
-                                                
-                                                println!("  ✅ Found: {}", name_str);
-                                            }
-                                        }
-                                    }
-                                }
+    for entry in fs::read_dir(&path).map_err(|e| format!("Failed to read directory: {}", e))? {
+        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let file_path = entry.path();
+        
+        if file_path.is_file() {
+            if let Some(extension) = file_path.extension() {
+                if let Some(ext_str) = extension.to_str() {
+                    let ext_lower = ext_str.to_lowercase();
+                    if SUPPORTED_AUDIO_EXTENSIONS.contains(&ext_lower.as_str()) {
+                        if let Some(file_name) = file_path.file_name() {
+                            if let Some(name_str) = file_name.to_str() {
+                                let metadata = fs::metadata(&file_path);
+                                let size = metadata.map(|m| m.len()).unwrap_or(0);
+                                
+                                audio_files.push(AudioFile {
+                                    name: name_str.to_string(),
+                                    path: format!("{}/{}", directory_path, name_str),
+                                    size,
+                                    extension: ext_lower,
+                                });
                             }
                         }
-                    }
-                    Err(e) => {
-                        println!("  ⚠️ Error reading directory entry: {}", e);
                     }
                 }
             }
         }
-        Err(e) => {
-            return Err(format!("Failed to read directory: {}", e));
-        }
     }
     
     let count = audio_files.len();
-    println!("📁 Found {} audio files in {}", count, directory_path);
     
     Ok(DirectoryContents {
         directory: directory_path,
@@ -125,51 +121,59 @@ async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContent
     })
 }
 
+fn count_audio_files(dir_path: &Path) -> usize {
+    let mut count = 0;
+    
+    if let Ok(entries) = fs::read_dir(dir_path) {
+        for entry in entries {
+            if let Ok(dir_entry) = entry {
+                let file_path = dir_entry.path();
+                if file_path.is_file() {
+                    if let Some(extension) = file_path.extension() {
+                        if let Some(ext_str) = extension.to_str() {
+                            let ext_lower = ext_str.to_lowercase();
+                            if SUPPORTED_AUDIO_EXTENSIONS.contains(&ext_lower.as_str()) {
+                                count += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    count
+}
+
 #[tauri::command]
 async fn get_supported_audio_formats() -> Vec<String> {
     SUPPORTED_AUDIO_EXTENSIONS.iter().map(|&s| s.to_string()).collect()
 }
 
 #[tauri::command]
-async fn check_directory_exists(directory_path: String) -> bool {
-    Path::new(&directory_path).exists()
-}
-
-#[tauri::command]
 async fn write_json_file(filename: String, data: JsonValue) -> Result<(), String> {
-    println!("💾 Writing JSON file: {}", filename);
-    
-    // Get the app data directory for persistent storage
     let app_dir = match std::env::var("APPDATA") {
         Ok(appdata) => Path::new(&appdata).join("ucanduit"),
         Err(_) => {
-            // On macOS/Linux, use home directory
             match std::env::var("HOME") {
                 Ok(home) => Path::new(&home).join(".ucanduit"),
                 Err(_) => {
-                    // Fallback to current directory
                     std::env::current_dir().unwrap().join("data")
                 }
             }
         }
     };
     
-    // Create directory if it doesn't exist
     if let Err(e) = fs::create_dir_all(&app_dir) {
         return Err(format!("Failed to create app directory: {}", e));
     }
     
     let file_path = app_dir.join(&filename);
-    println!("📁 Saving to: {:?}", file_path);
     
-    // Serialize and write the JSON data
     match serde_json::to_string_pretty(&data) {
         Ok(json_string) => {
             match fs::write(&file_path, json_string) {
-                Ok(_) => {
-                    println!("✅ Successfully saved {}", filename);
-                    Ok(())
-                },
+                Ok(_) => Ok(()),
                 Err(e) => Err(format!("Failed to write file: {}", e))
             }
         },
@@ -179,17 +183,12 @@ async fn write_json_file(filename: String, data: JsonValue) -> Result<(), String
 
 #[tauri::command]
 async fn read_json_file(filename: String) -> Result<JsonValue, String> {
-    println!("📖 Reading JSON file: {}", filename);
-    
-    // Get the app data directory
     let app_dir = match std::env::var("APPDATA") {
         Ok(appdata) => Path::new(&appdata).join("ucanduit"),
         Err(_) => {
-            // On macOS/Linux, use home directory
             match std::env::var("HOME") {
                 Ok(home) => Path::new(&home).join(".ucanduit"),
                 Err(_) => {
-                    // Fallback to current directory
                     std::env::current_dir().unwrap().join("data")
                 }
             }
@@ -197,20 +196,15 @@ async fn read_json_file(filename: String) -> Result<JsonValue, String> {
     };
     
     let file_path = app_dir.join(&filename);
-    println!("📁 Reading from: {:?}", file_path);
     
     if !file_path.exists() {
         return Err(format!("File does not exist: {}", filename));
     }
     
-    // Read and parse the JSON file
     match fs::read_to_string(&file_path) {
         Ok(contents) => {
             match serde_json::from_str::<JsonValue>(&contents) {
-                Ok(json_data) => {
-                    println!("✅ Successfully loaded {}", filename);
-                    Ok(json_data)
-                },
+                Ok(json_data) => Ok(json_data),
                 Err(e) => Err(format!("Failed to parse JSON: {}", e))
             }
         },
@@ -223,8 +217,8 @@ pub fn run() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
       scan_audio_directory,
+      scan_audio_directories,
       get_supported_audio_formats,
-      check_directory_exists,
       write_json_file,
       read_json_file
     ])

@@ -12,40 +12,8 @@ export class AmbientSoundsTool {
         this.isInitialized = false;
         this.directoryCache = new Map(); // Cache discovered files
         
-        // Audio loop configurations - will scan directories for multiple files
-        // These will be resolved to absolute paths by Tauri
-        this.soundConfigs = {
-            rain: { 
-                directory: './audio/rain', 
-                baseGain: 0.6,
-                displayName: 'Rain'
-            },
-            ocean: { 
-                directory: './audio/ocean', 
-                baseGain: 0.5,
-                displayName: 'Ocean Waves'
-            },
-            forest: { 
-                directory: './audio/forest', 
-                baseGain: 0.4,
-                displayName: 'Forest'
-            },
-            cafe: { 
-                directory: './audio/cafe', 
-                baseGain: 0.3,
-                displayName: 'Coffee Shop'
-            },
-            fireplace: { 
-                directory: './audio/fireplace', 
-                baseGain: 0.5,
-                displayName: 'Fireplace'
-            },
-            thunderstorm: { 
-                directory: './audio/thunderstorm', 
-                baseGain: 0.4,
-                displayName: 'Thunderstorm'
-            }
-        };
+        // Audio loop configurations - will be dynamically populated by scanning directories
+        this.soundConfigs = {};
         
         // Supported audio formats
         this.supportedFormats = ['mp3', 'wav', 'ogg', 'm4a', 'aac'];
@@ -53,8 +21,25 @@ export class AmbientSoundsTool {
         // Test audio format support at startup (async)
         this.checkAudioSupport().catch(console.error);
         
-        this.render();
-        this.bindEvents();
+        // Discover audio directories and initialize
+        this.initializeAsync();
+    }
+    
+    // Async initialization that discovers directories first, then renders
+    async initializeAsync() {
+        try {
+            // First discover the audio directories
+            await this.discoverAudioDirectories();
+            
+            // Then render the UI with discovered configurations
+            this.render();
+            this.bindEvents();
+        } catch (error) {
+            console.error('❌ Failed to initialize AmbientSoundsTool:', error);
+            // Still render empty UI so the container doesn't break
+            this.render();
+            this.bindEvents();
+        }
     }
     
     // Check audio format support using both Tauri and browser capabilities
@@ -118,74 +103,76 @@ export class AmbientSoundsTool {
         throw new Error('Tauri API did not become available within timeout');
     }
     
-    // Scan directory for audio files using Tauri native commands
+    // Automatically discover audio directories and build sound configurations
+    async discoverAudioDirectories() {
+        try {
+            await this.waitForTauri();
+            
+            const { core } = window.__TAURI__;
+            const audioDirectories = await core.invoke('scan_audio_directories');
+            
+            // Build sound configurations from discovered directories
+            this.soundConfigs = {};
+            for (const dir of audioDirectories) {
+                const key = dir.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                
+                // Create display name from directory name
+                const displayName = dir.name
+                    .split(/[-_\s]+/)
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+                
+                // Set base gain based on sound type
+                let baseGain = 0.5;
+                const lowerDirName = dir.name.toLowerCase();
+                if (lowerDirName.includes('rain') || lowerDirName.includes('storm')) {
+                    baseGain = 0.6;
+                } else if (lowerDirName.includes('cafe') || lowerDirName.includes('coffee')) {
+                    baseGain = 0.3;
+                } else if (lowerDirName.includes('thunder')) {
+                    baseGain = 0.4;
+                }
+                
+                this.soundConfigs[key] = {
+                    directory: dir.path, // Already formatted as /audio/{name}
+                    baseGain: baseGain,
+                    displayName: displayName,
+                    fileCount: dir.file_count
+                };
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Failed to discover audio directories:', error);
+            this.soundConfigs = {};
+            return false;
+        }
+    }
+    
+    // Scan directory for audio files 
     async scanDirectory(directory, forceRefresh = false) {
-        console.log(`🔍 Scanning directory: ${directory}${forceRefresh ? ' (force refresh)' : ''}`);
-        
-        // Check cache first (unless force refresh)
         const cacheKey = directory;
         if (!forceRefresh && this.directoryCache.has(cacheKey)) {
-            console.log(`💾 Using cached results for ${directory}`);
             return this.directoryCache.get(cacheKey);
         }
         
-        // Check localStorage cache
-        const storageKey = `ambient-directory-cache-${directory.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        if (!forceRefresh) {
-            try {
-                const cached = localStorage.getItem(storageKey);
-                if (cached) {
-                    const cachedData = JSON.parse(cached);
-                    const cacheAge = Date.now() - cachedData.timestamp;
-                    // Cache is valid for 24 hours
-                    if (cacheAge < 24 * 60 * 60 * 1000) {
-                        console.log(`💾 Using localStorage cache for ${directory} (${Math.round(cacheAge / 1000 / 60)} minutes old)`);
-                        this.directoryCache.set(cacheKey, cachedData.files);
-                        return cachedData.files;
-                    } else {
-                        console.log(`🕐 Cache expired for ${directory}`);
-                        localStorage.removeItem(storageKey);
-                    }
-                }
-            } catch (error) {
-                console.log(`⚠️ Cache error for ${directory}:`, error);
-            }
-        }
-        
         try {
-            // Wait for Tauri to be available
             await this.waitForTauri();
             
-            // Use Tauri command to scan directory natively
-            console.log(`🦀 Using Tauri to scan: ${directory}`);
             const { core } = window.__TAURI__;
             const result = await core.invoke('scan_audio_directory', { 
                 directoryPath: directory 
             });
             
-            console.log(`📁 Tauri found ${result.count} files in ${directory}:`, result.files.map(f => f.name));
+            // Convert to simple web paths
+            const fileUrls = result.files.map(file => file.path);
             
-            // Convert to the format our system expects (file URLs)
-            const fileUrls = result.files.map(file => `file://${file.path}`);
-            
-            // Cache the results
             this.directoryCache.set(cacheKey, fileUrls);
-            try {
-                localStorage.setItem(storageKey, JSON.stringify({
-                    files: fileUrls,
-                    timestamp: Date.now(),
-                    directory: directory,
-                    tauriResult: result
-                }));
-                console.log(`💾 Cached ${fileUrls.length} files for ${directory}`);
-            } catch (error) {
-                console.warn(`⚠️ Failed to cache results for ${directory}:`, error);
-            }
-            
             return fileUrls;
             
         } catch (error) {
-            console.error(`❌ Tauri scan failed for ${directory}:`, error);
+            console.error(`Failed to scan directory ${directory}:`, error);
             return [];
         }
     }
@@ -197,35 +184,55 @@ export class AmbientSoundsTool {
     }
     
     render() {
-        const soundItems = Object.entries(this.soundConfigs).map(([key, config]) => `
-            <div class="sound-item" style="
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                padding: 8px 0;
-            ">
-                <div class="sound-label" style="
-                    font-size: 16px;
-                    font-weight: 600;
-                    color: #2a2d34;
-                    text-align: center;
-                ">${config.displayName}</div>
-                <input type="range" class="volume-slider" data-sound="${key}" min="0" max="100" value="0" 
-                       style="
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 100%;
-                    height: 12px;
-                    border-radius: 8px;
-                    background: #F5F5F5;
-                    border: 2px solid #2a2d34;
-                    outline: none;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    --thumb-scale: 1;
+        // Check if we have any sound configurations discovered yet
+        const hasConfigs = Object.keys(this.soundConfigs).length > 0;
+        
+        let soundItems = '';
+        if (hasConfigs) {
+            soundItems = Object.entries(this.soundConfigs).map(([key, config]) => `
+                <div class="sound-item" style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    padding: 8px 0;
                 ">
-            </div>
-        `).join('');
+                    <div class="sound-label" style="
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #2a2d34;
+                        text-align: center;
+                    ">${config.displayName}</div>
+                    <input type="range" class="volume-slider" data-sound="${key}" min="0" max="100" value="0" 
+                           style="
+                        -webkit-appearance: none;
+                        appearance: none;
+                        width: 100%;
+                        height: 12px;
+                        border-radius: 8px;
+                        background: #F5F5F5;
+                        border: 2px solid #2a2d34;
+                        outline: none;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        --thumb-scale: 1;
+                    ">
+                </div>
+            `).join('');
+        } else {
+            // Show loading state while discovering directories
+            soundItems = `
+                <div style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 40px;
+                    color: #666;
+                    font-style: italic;
+                ">
+                    Discovering audio directories...
+                </div>
+            `;
+        }
 
         this.container.innerHTML = `
             <div class="sound-controls" style="
@@ -396,52 +403,44 @@ export class AmbientSoundsTool {
         };
         
         try {
-            // Scan directory for available files
             sound.availableFiles = await this.scanDirectory(config.directory, forceRefresh);
             
             if (sound.availableFiles.length > 0) {
-                // Load all available files
                 const loadPromises = sound.availableFiles.map(async (file) => {
                     try {
-                        console.log(`🎵 Loading audio file: ${file}`);
-                        const response = await fetch(file);
+                        console.log(`Loading audio file: ${file}`);
+                        const response = await fetch(file, {
+                            headers: {
+                                'Accept': 'audio/*,*/*'
+                            }
+                        });
+                        
                         if (response.ok) {
-                            console.log(`📥 Fetched ${file} (${response.headers.get('content-type')})`);
-                            const arrayBuffer = await response.arrayBuffer();
-                            console.log(`📦 Got arrayBuffer for ${file}, size: ${arrayBuffer.byteLength} bytes`);
+                            const contentType = response.headers.get('content-type');
+                            console.log(`Content-Type for ${file}: ${contentType}`);
                             
-                            // Check if browser supports this audio format
-                            const audio = new Audio();
-                            const canPlay = audio.canPlayType(response.headers.get('content-type') || '');
-                            console.log(`🎧 Browser support for ${file}: ${canPlay}`);
+                            const arrayBuffer = await response.arrayBuffer();
+                            console.log(`ArrayBuffer size for ${file}: ${arrayBuffer.byteLength} bytes`);
                             
                             const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-                            console.log(`✅ Successfully decoded ${file}`);
+                            console.log(`Successfully decoded ${file}`);
                             return { file, audioBuffer };
                         } else {
-                            console.warn(`❌ Failed to fetch ${file}: ${response.status} ${response.statusText}`);
-                            return null;
+                            console.error(`HTTP error for ${file}: ${response.status} ${response.statusText}`);
                         }
+                        return null;
                     } catch (error) {
-                        console.error(`❌ Failed to load ${file}:`, error.message, error);
+                        console.error(`Failed to load ${file}:`, error.name, error.message);
                         return null;
                     }
                 });
                 
                 const results = await Promise.all(loadPromises);
                 sound.audioBuffers = results.filter(result => result !== null);
-                
-                if (sound.audioBuffers.length > 0) {
-                    sound.loaded = true;
-                    console.log(`Loaded ${sound.audioBuffers.length} files for ${config.displayName}`);
-                } else {
-                    console.warn(`No valid audio files found in directory: ${config.directory}`);
-                }
-            } else {
-                console.warn(`No audio files found in directory: ${config.directory}`);
+                sound.loaded = sound.audioBuffers.length > 0;
             }
         } catch (error) {
-            console.warn(`Failed to scan directory ${config.directory}:`, error.message);
+            console.warn(`Failed to load sounds for ${config.displayName}:`, error);
         }
         
         sound.gainNode = this.audioContext.createGain();
@@ -592,7 +591,8 @@ export class AmbientSoundsTool {
     
     async updateSoundVolume(soundName, volume) {
         if (!this.isInitialized) {
-            await this.initialize();
+            // Only initialize the audio context, not reload sounds
+            await this.initializeAudioContext();
         }
         this.setVolume(soundName, volume);
         
@@ -603,49 +603,46 @@ export class AmbientSoundsTool {
         }
     }
     
-    // Refresh audio cache - rescan all directories
-    async refreshAudioCache() {
-        console.log('🔄 Refreshing audio cache...');
+    // Initialize just the audio context (separate from full initialization)
+    async initializeAudioContext() {
+        if (this.audioContext) return; // Already initialized
         
         try {
-            // Stop all playing sounds
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+            
+            this.masterGain = this.audioContext.createGain();
+            this.masterGain.connect(this.audioContext.destination);
+            
+            console.log('Audio context initialized');
+        } catch (error) {
+            console.error('Failed to initialize audio context:', error);
+        }
+    }
+    
+    // Refresh audio cache - rescan all directories
+    async refreshAudioCache() {
+        try {
             Object.keys(this.sounds).forEach(soundName => {
                 this.stopSound(soundName);
             });
             
-            // Clear in-memory cache
             this.directoryCache.clear();
+            await this.discoverAudioDirectories();
+            this.render();
+            this.bindEvents();
             
-            // Reinitialize all sounds with force refresh
             const soundPromises = Object.entries(this.soundConfigs).map(async ([name, config]) => {
-                this.sounds[name] = await this.createAmbientSound(config, true); // true = force refresh
+                this.sounds[name] = await this.createAmbientSound(config, true);
             });
             
             await Promise.all(soundPromises);
-            
-            console.log('✅ Audio cache refreshed successfully');
         } catch (error) {
-            console.error('❌ Failed to refresh audio cache:', error);
+            console.error('Failed to refresh audio cache:', error);
         }
-    }
-    
-    // Clear audio cache
-    clearAudioCache() {
-        console.log('🗑️ Clearing audio cache...');
-        
-        // Clear in-memory cache
-        this.directoryCache.clear();
-        
-        // Clear localStorage cache
-        const keys = Object.keys(localStorage);
-        keys.forEach(key => {
-            if (key.startsWith('ambient-directory-cache-')) {
-                localStorage.removeItem(key);
-                console.log(`🗑️ Removed cache: ${key}`);
-            }
-        });
-        
-        console.log('✅ Audio cache cleared');
     }
     
     // Get combined audio data for oscilloscope visualization

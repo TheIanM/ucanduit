@@ -11,7 +11,11 @@ export class TodoListTool {
         this.activeListId = null;
         this.currentView = 'lists'; // 'lists' or 'items'
         
-        this.loadFromStorage();
+        this.initialize();
+    }
+    
+    async initialize() {
+        await this.loadFromStorage();
         this.render();
         this.bindEvents();
     }
@@ -216,11 +220,11 @@ export class TodoListTool {
         const newItemInput = this.container.querySelector('.new-item-text');
         
         addButton.addEventListener('click', () => this.showAddInput());
-        confirmAdd.addEventListener('click', () => this.handleAdd());
+        confirmAdd.addEventListener('click', async () => await this.handleAdd());
         cancelAdd.addEventListener('click', () => this.hideAddInput());
         
-        newItemInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleAdd();
+        newItemInput.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') await this.handleAdd();
             if (e.key === 'Escape') this.hideAddInput();
         });
     }
@@ -327,7 +331,7 @@ export class TodoListTool {
         addInput.style.display = 'none';
     }
     
-    handleAdd() {
+    async handleAdd() {
         const textInput = this.container.querySelector('.new-item-text');
         const text = textInput.value.trim();
         
@@ -341,7 +345,7 @@ export class TodoListTool {
         
         this.hideAddInput();
         this.updateView();
-        this.saveToStorage();
+        await this.saveToStorage();
     }
     
     createList(name) {
@@ -389,7 +393,7 @@ export class TodoListTool {
         this.updateView();
     }
     
-    toggleItem(itemId) {
+    async toggleItem(itemId) {
         if (!this.activeListId || !this.lists[this.activeListId]) return;
         
         const item = this.lists[this.activeListId].items.find(i => i.id === itemId);
@@ -404,7 +408,7 @@ export class TodoListTool {
             }
             
             this.updateView();
-            this.saveToStorage();
+            await this.saveToStorage();
         }
     }
     
@@ -421,9 +425,9 @@ export class TodoListTool {
         // Bind item clicks
         const todoItems = this.container.querySelectorAll('.todo-item');
         todoItems.forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', async () => {
                 const itemId = item.getAttribute('data-item-id');
-                this.toggleItem(itemId);
+                await this.toggleItem(itemId);
             });
         });
     }
@@ -432,29 +436,69 @@ export class TodoListTool {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
     
-    saveToStorage() {
+    async saveToStorage() {
         try {
-            localStorage.setItem('ucanduit-todos', JSON.stringify(this.lists));
+            // First try to save to external file using Tauri
+            if (window.__TAURI__ && window.__TAURI__.core) {
+                await window.__TAURI__.core.invoke('write_json_file', {
+                    filename: 'ucanduit-todos.json',
+                    data: this.lists
+                });
+                console.log('✅ Todos saved to external file');
+            } else {
+                // Fallback to localStorage if Tauri not available
+                localStorage.setItem('ucanduit-todos', JSON.stringify(this.lists));
+                console.log('📱 Todos saved to localStorage (fallback)');
+            }
         } catch (error) {
-            console.error('Failed to save todos to localStorage:', error);
+            console.error('❌ Failed to save todos to file, using localStorage fallback:', error);
+            try {
+                localStorage.setItem('ucanduit-todos', JSON.stringify(this.lists));
+            } catch (localError) {
+                console.error('❌ Failed to save todos to localStorage:', localError);
+            }
         }
     }
     
-    loadFromStorage() {
+    async loadFromStorage() {
+        try {
+            // First try to load from external file using Tauri
+            if (window.__TAURI__ && window.__TAURI__.core) {
+                const fileData = await window.__TAURI__.core.invoke('read_json_file', {
+                    filename: 'ucanduit-todos.json'
+                });
+                if (fileData) {
+                    this.lists = fileData;
+                    console.log('✅ Todos loaded from external file');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.log('📄 No external todos file found or Tauri unavailable, checking localStorage');
+        }
+        
+        // Fallback to localStorage
         try {
             const saved = localStorage.getItem('ucanduit-todos');
             if (saved) {
                 this.lists = JSON.parse(saved);
+                console.log('📱 Todos loaded from localStorage');
+                
+                // Migrate from localStorage to file if Tauri is available
+                if (window.__TAURI__ && window.__TAURI__.core) {
+                    await this.saveToStorage();
+                    console.log('🔄 Migrated todos from localStorage to external file');
+                }
             }
         } catch (error) {
-            console.error('Failed to load todos from localStorage:', error);
+            console.error('❌ Failed to load todos from localStorage:', error);
             this.lists = {};
         }
     }
     
     // Cleanup method for when tool is unloaded
-    destroy() {
-        this.saveToStorage(); // Save before destroying
+    async destroy() {
+        await this.saveToStorage(); // Save before destroying
         this.container.innerHTML = '';
     }
 }

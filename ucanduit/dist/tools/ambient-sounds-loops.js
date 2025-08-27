@@ -251,32 +251,6 @@ export class AmbientSoundsTool {
                 Loading audio files...
             </div>
             
-            <div class="ambient-controls" style="
-                display: flex;
-                justify-content: center;
-                gap: 10px;
-                margin: 10px 0;
-                font-size: 12px;
-            ">
-                <button id="refresh-audio-cache" style="
-                    background: #2a2d34;
-                    color: white;
-                    border: none;
-                    padding: 6px 12px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 11px;
-                ">🔄 Refresh Audio Files</button>
-                <button id="clear-audio-cache" style="
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    padding: 6px 12px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 11px;
-                ">🗑️ Clear Cache</button>
-            </div>
             
             <style>
                 .volume-slider::-webkit-slider-thumb {
@@ -364,17 +338,6 @@ export class AmbientSoundsTool {
             });
         });
         
-        // Refresh cache button
-        const refreshBtn = this.container.querySelector('#refresh-audio-cache');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => this.refreshAudioCache());
-        }
-        
-        // Clear cache button
-        const clearBtn = this.container.querySelector('#clear-audio-cache');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.clearAudioCache());
-        }
     }
     
     async initialize() {
@@ -643,11 +606,6 @@ export class AmbientSoundsTool {
     // Refresh audio cache - rescan all directories
     async refreshAudioCache() {
         console.log('🔄 Refreshing audio cache...');
-        const refreshBtn = this.container.querySelector('#refresh-audio-cache');
-        if (refreshBtn) {
-            refreshBtn.textContent = '🔄 Refreshing...';
-            refreshBtn.disabled = true;
-        }
         
         try {
             // Stop all playing sounds
@@ -668,11 +626,6 @@ export class AmbientSoundsTool {
             console.log('✅ Audio cache refreshed successfully');
         } catch (error) {
             console.error('❌ Failed to refresh audio cache:', error);
-        } finally {
-            if (refreshBtn) {
-                refreshBtn.textContent = '🔄 Refresh Audio Files';
-                refreshBtn.disabled = false;
-            }
         }
     }
     

@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::fs;
 use serde::{Deserialize, Serialize};
+use serde_json::{Value as JsonValue};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AudioFile {
@@ -134,13 +135,98 @@ async fn check_directory_exists(directory_path: String) -> bool {
     Path::new(&directory_path).exists()
 }
 
+#[tauri::command]
+async fn write_json_file(filename: String, data: JsonValue) -> Result<(), String> {
+    println!("💾 Writing JSON file: {}", filename);
+    
+    // Get the app data directory for persistent storage
+    let app_dir = match std::env::var("APPDATA") {
+        Ok(appdata) => Path::new(&appdata).join("ucanduit"),
+        Err(_) => {
+            // On macOS/Linux, use home directory
+            match std::env::var("HOME") {
+                Ok(home) => Path::new(&home).join(".ucanduit"),
+                Err(_) => {
+                    // Fallback to current directory
+                    std::env::current_dir().unwrap().join("data")
+                }
+            }
+        }
+    };
+    
+    // Create directory if it doesn't exist
+    if let Err(e) = fs::create_dir_all(&app_dir) {
+        return Err(format!("Failed to create app directory: {}", e));
+    }
+    
+    let file_path = app_dir.join(&filename);
+    println!("📁 Saving to: {:?}", file_path);
+    
+    // Serialize and write the JSON data
+    match serde_json::to_string_pretty(&data) {
+        Ok(json_string) => {
+            match fs::write(&file_path, json_string) {
+                Ok(_) => {
+                    println!("✅ Successfully saved {}", filename);
+                    Ok(())
+                },
+                Err(e) => Err(format!("Failed to write file: {}", e))
+            }
+        },
+        Err(e) => Err(format!("Failed to serialize JSON: {}", e))
+    }
+}
+
+#[tauri::command]
+async fn read_json_file(filename: String) -> Result<JsonValue, String> {
+    println!("📖 Reading JSON file: {}", filename);
+    
+    // Get the app data directory
+    let app_dir = match std::env::var("APPDATA") {
+        Ok(appdata) => Path::new(&appdata).join("ucanduit"),
+        Err(_) => {
+            // On macOS/Linux, use home directory
+            match std::env::var("HOME") {
+                Ok(home) => Path::new(&home).join(".ucanduit"),
+                Err(_) => {
+                    // Fallback to current directory
+                    std::env::current_dir().unwrap().join("data")
+                }
+            }
+        }
+    };
+    
+    let file_path = app_dir.join(&filename);
+    println!("📁 Reading from: {:?}", file_path);
+    
+    if !file_path.exists() {
+        return Err(format!("File does not exist: {}", filename));
+    }
+    
+    // Read and parse the JSON file
+    match fs::read_to_string(&file_path) {
+        Ok(contents) => {
+            match serde_json::from_str::<JsonValue>(&contents) {
+                Ok(json_data) => {
+                    println!("✅ Successfully loaded {}", filename);
+                    Ok(json_data)
+                },
+                Err(e) => Err(format!("Failed to parse JSON: {}", e))
+            }
+        },
+        Err(e) => Err(format!("Failed to read file: {}", e))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .invoke_handler(tauri::generate_handler![
       scan_audio_directory,
       get_supported_audio_formats,
-      check_directory_exists
+      check_directory_exists,
+      write_json_file,
+      read_json_file
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {

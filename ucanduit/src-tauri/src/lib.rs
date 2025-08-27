@@ -24,13 +24,50 @@ const SUPPORTED_AUDIO_EXTENSIONS: &[&str] = &["mp3", "wav", "ogg", "m4a", "aac",
 async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContents, String> {
     println!("🔍 Scanning audio directory: {}", directory_path);
     
-    let path = Path::new(&directory_path);
+    // Resolve relative paths relative to the app's resource directory
+    let resolved_path = if directory_path.starts_with("./") {
+        // Remove the "./" prefix and resolve relative to app resources
+        let relative_part = &directory_path[2..];
+        let app_dir = std::env::current_exe()
+            .map(|exe_path| exe_path.parent().unwrap().to_path_buf())
+            .unwrap_or_else(|_| std::env::current_dir().unwrap());
+        
+        println!("🔍 App directory: {:?}", app_dir);
+        println!("🔍 Current directory: {:?}", std::env::current_dir());
+        
+        // Try different possible locations for the audio folder
+        let possible_paths = vec![
+            app_dir.join(relative_part),                    // Same dir as executable
+            app_dir.join("dist").join(relative_part),       // dist subfolder
+            app_dir.parent().unwrap().join("dist").join(relative_part), // parent/dist
+            app_dir.parent().unwrap().join(relative_part),  // parent directory
+            std::env::current_dir().unwrap().join("dist").join(relative_part), // current/dist
+            std::env::current_dir().unwrap().join(relative_part), // current directory
+            std::env::current_dir().unwrap().parent().unwrap().join(relative_part), // current parent
+        ];
+        
+        let mut found_path = None;
+        for candidate in possible_paths {
+            println!("🔍 Checking path: {:?}", candidate);
+            if candidate.exists() {
+                println!("✅ Found audio directory at: {:?}", candidate);
+                found_path = Some(candidate);
+                break;
+            }
+        }
+        
+        found_path.unwrap_or_else(|| Path::new(&directory_path).to_path_buf())
+    } else {
+        Path::new(&directory_path).to_path_buf()
+    };
+    
+    let path = &resolved_path;
     if !path.exists() {
-        return Err(format!("Directory does not exist: {}", directory_path));
+        return Err(format!("Directory does not exist: {} (resolved to: {:?})", directory_path, resolved_path));
     }
     
     if !path.is_dir() {
-        return Err(format!("Path is not a directory: {}", directory_path));
+        return Err(format!("Path is not a directory: {} (resolved to: {:?})", directory_path, resolved_path));
     }
     
     let mut audio_files = Vec::new();

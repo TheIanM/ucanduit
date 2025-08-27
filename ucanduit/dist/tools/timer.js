@@ -152,6 +152,7 @@ export class TimerTool {
         if (this.isRunning || this.remainingSeconds === 0) return;
         
         this.isRunning = true;
+        this.startTime = Date.now(); // Track start time for analytics
         this.intervalId = setInterval(() => {
             this.remainingSeconds--;
             this.updateDisplay();
@@ -160,6 +161,12 @@ export class TimerTool {
                 this.complete();
             }
         }, 1000);
+        
+        // Track timer start for analytics
+        if (window.usageAnalytics) {
+            const durationMinutes = Math.floor(this.totalSeconds / 60);
+            window.usageAnalytics.trackTimerStart(durationMinutes);
+        }
         
         // Update parent status briefly, then return to ticker rotation
         if (window.updateStatus) {
@@ -212,6 +219,12 @@ export class TimerTool {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
+        }
+        
+        // Track timer completion for analytics
+        if (window.usageAnalytics && this.startTime) {
+            const actualMinutes = Math.floor((Date.now() - this.startTime) / 1000 / 60);
+            window.usageAnalytics.trackTimerComplete(actualMinutes);
         }
         
         // Update parent status briefly, then return to ticker rotation

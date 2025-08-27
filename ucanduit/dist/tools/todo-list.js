@@ -352,6 +352,11 @@ export class TodoListTool {
             items: [],
             createdAt: Date.now()
         };
+        
+        // Track list creation for analytics
+        if (window.usageAnalytics) {
+            window.usageAnalytics.trackTodoCreated(false); // false = list, not item
+        }
     }
     
     createItem(text) {
@@ -365,6 +370,11 @@ export class TodoListTool {
             createdAt: Date.now(),
             completedAt: null
         });
+        
+        // Track item creation for analytics
+        if (window.usageAnalytics) {
+            window.usageAnalytics.trackTodoCreated(true); // true = item
+        }
     }
     
     showLists() {
@@ -384,8 +394,15 @@ export class TodoListTool {
         
         const item = this.lists[this.activeListId].items.find(i => i.id === itemId);
         if (item) {
+            const wasCompleted = item.completed;
             item.completed = !item.completed;
             item.completedAt = item.completed ? Date.now() : null;
+            
+            // Track completion for analytics (only when marking as completed)
+            if (!wasCompleted && item.completed && window.usageAnalytics) {
+                window.usageAnalytics.trackTodoCompleted();
+            }
+            
             this.updateView();
             this.saveToStorage();
         }

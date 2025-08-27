@@ -791,6 +791,11 @@
                 document.getElementById('status-badge').textContent = `OssC Active - ${statusText}`;
                 document.getElementById('status-badge').className = oscilloscope.demoMode ? 'badge badge-primary' : 'badge badge-success';
                 document.getElementById('demo-setting-text').textContent = oscilloscope.demoMode ? 'Disable Demo' : 'Enable Demo';
+                
+                // Track demo mode toggle for analytics
+                if (window.usageAnalytics) {
+                    window.usageAnalytics.data.osscMetrics.demoModeToggled++;
+                }
             }
         };
         
@@ -1108,6 +1113,321 @@
             }
         };
         
+        // Usage Analytics & Gamification System
+        window.usageAnalytics = {
+            data: {
+                // Installation & Session Info
+                firstOpenDate: null,
+                currentSessionStart: null,
+                currentSessionDuration: 0,
+                totalRuntime: 0,
+                sessionsCount: 0,
+                
+                // Timer Metrics
+                timerSessions: {
+                    total: 0,
+                    completed: 0,
+                    totalTimeTracked: 0, // in seconds
+                    averageSessionLength: 0,
+                    longestSession: 0,
+                    streakCurrent: 0,
+                    streakBest: 0
+                },
+                
+                // Todo List Metrics
+                todoMetrics: {
+                    listsCreated: 0,
+                    itemsCreated: 0,
+                    itemsCompleted: 0,
+                    completionRate: 0,
+                    streakCurrent: 0,
+                    streakBest: 0,
+                    averageItemsPerDay: 0
+                },
+                
+                // Ambient Sound Metrics
+                ambientMetrics: {
+                    totalActiveTime: 0, // in seconds
+                    sessionsCount: 0,
+                    favoriteGenerators: {}, // name: timeUsed mapping
+                    currentSessionStart: null
+                },
+                
+                // OssC Metrics
+                osscMetrics: {
+                    demoModeToggled: 0,
+                    totalDemoTime: 0,
+                    audioDetectionTime: 0
+                },
+                
+                // Daily/Weekly Stats
+                dailyStats: {}, // date: {runtime, timers, todos} mapping
+                
+                // Achievements & Milestones
+                achievements: [],
+                milestones: {
+                    firstTimer: false,
+                    firstTodo: false,
+                    hourOfFocus: false,
+                    dayOfProductivity: false,
+                    weekStreak: false
+                }
+            },
+            
+            // Initialize or load existing data
+            init() {
+                try {
+                    const saved = localStorage.getItem('ucanduit-analytics');
+                    if (saved) {
+                        this.data = { ...this.data, ...JSON.parse(saved) };
+                    } else {
+                        // First time setup
+                        this.data.firstOpenDate = new Date().toISOString();
+                    }
+                } catch (error) {
+                    console.warn('Could not load analytics data:', error);
+                }
+                
+                // Start current session tracking
+                this.startSession();
+                this.setupPeriodicSave();
+                
+                console.log('Usage Analytics initialized:', this.getSessionSummary());
+                
+                // Make analytics accessible from console for debugging/viewing
+                window.viewAnalytics = () => {
+                    console.log('📊 Usage Analytics Data:');
+                    console.log('========================');
+                    console.table(this.getSessionSummary());
+                    console.log('\n🏆 Achievements:', this.data.achievements);
+                    console.log('\n📈 Detailed Data:', this.data);
+                    return this.exportData();
+                };
+            },
+            
+            // Start tracking current session
+            startSession() {
+                this.data.currentSessionStart = Date.now();
+                this.data.currentSessionDuration = 0;
+                this.data.sessionsCount++;
+                
+                // Start session runtime counter
+                this.sessionInterval = setInterval(() => {
+                    this.data.currentSessionDuration = Date.now() - this.data.currentSessionStart;
+                    this.data.totalRuntime += 1000; // Add 1 second
+                    this.updateDailyStats();
+                }, 1000);
+            },
+            
+            // Update daily statistics
+            updateDailyStats() {
+                const today = new Date().toDateString();
+                if (!this.data.dailyStats[today]) {
+                    this.data.dailyStats[today] = {
+                        runtime: 0,
+                        timers: 0,
+                        todosCreated: 0,
+                        todosCompleted: 0
+                    };
+                }
+                // Runtime is updated by session interval
+            },
+            
+            // Timer event tracking
+            trackTimerStart(durationMinutes) {
+                this.data.timerSessions.total++;
+                const today = new Date().toDateString();
+                if (this.data.dailyStats[today]) {
+                    this.data.dailyStats[today].timers++;
+                }
+                this.checkAchievements();
+                this.save();
+            },
+            
+            trackTimerComplete(actualMinutes) {
+                this.data.timerSessions.completed++;
+                this.data.timerSessions.totalTimeTracked += actualMinutes * 60;
+                
+                // Update averages
+                this.data.timerSessions.averageSessionLength = 
+                    this.data.timerSessions.totalTimeTracked / this.data.timerSessions.completed / 60;
+                
+                // Update longest session
+                if (actualMinutes > this.data.timerSessions.longestSession) {
+                    this.data.timerSessions.longestSession = actualMinutes;
+                }
+                
+                this.checkAchievements();
+                this.save();
+            },
+            
+            // Todo event tracking
+            trackTodoCreated(isItem = true) {
+                if (isItem) {
+                    this.data.todoMetrics.itemsCreated++;
+                    const today = new Date().toDateString();
+                    if (this.data.dailyStats[today]) {
+                        this.data.dailyStats[today].todosCreated++;
+                    }
+                } else {
+                    this.data.todoMetrics.listsCreated++;
+                }
+                
+                this.updateTodoStats();
+                this.checkAchievements();
+                this.save();
+            },
+            
+            trackTodoCompleted() {
+                this.data.todoMetrics.itemsCompleted++;
+                const today = new Date().toDateString();
+                if (this.data.dailyStats[today]) {
+                    this.data.dailyStats[today].todosCompleted++;
+                }
+                
+                this.updateTodoStats();
+                this.checkAchievements();
+                this.save();
+            },
+            
+            updateTodoStats() {
+                // Update completion rate
+                if (this.data.todoMetrics.itemsCreated > 0) {
+                    this.data.todoMetrics.completionRate = 
+                        (this.data.todoMetrics.itemsCompleted / this.data.todoMetrics.itemsCreated * 100).toFixed(1);
+                }
+            },
+            
+            // Ambient sound tracking
+            trackAmbientStart() {
+                this.data.ambientMetrics.currentSessionStart = Date.now();
+                this.data.ambientMetrics.sessionsCount++;
+            },
+            
+            trackAmbientStop() {
+                if (this.data.ambientMetrics.currentSessionStart) {
+                    const sessionTime = Date.now() - this.data.ambientMetrics.currentSessionStart;
+                    this.data.ambientMetrics.totalActiveTime += Math.floor(sessionTime / 1000);
+                    this.data.ambientMetrics.currentSessionStart = null;
+                }
+                this.save();
+            },
+            
+            trackAmbientGenerator(generatorName, isActive) {
+                if (!this.data.ambientMetrics.favoriteGenerators[generatorName]) {
+                    this.data.ambientMetrics.favoriteGenerators[generatorName] = 0;
+                }
+                
+                if (isActive) {
+                    // Start tracking this generator
+                    this.data.ambientMetrics.favoriteGenerators[generatorName + '_start'] = Date.now();
+                } else {
+                    // Stop tracking and add time
+                    const startTime = this.data.ambientMetrics.favoriteGenerators[generatorName + '_start'];
+                    if (startTime) {
+                        const duration = Math.floor((Date.now() - startTime) / 1000);
+                        this.data.ambientMetrics.favoriteGenerators[generatorName] += duration;
+                        delete this.data.ambientMetrics.favoriteGenerators[generatorName + '_start'];
+                    }
+                }
+            },
+            
+            // Achievement checking
+            checkAchievements() {
+                const newAchievements = [];
+                
+                // First timer achievement
+                if (!this.data.milestones.firstTimer && this.data.timerSessions.total >= 1) {
+                    this.data.milestones.firstTimer = true;
+                    newAchievements.push('First Timer! 🎯');
+                }
+                
+                // First todo achievement
+                if (!this.data.milestones.firstTodo && this.data.todoMetrics.itemsCreated >= 1) {
+                    this.data.milestones.firstTodo = true;
+                    newAchievements.push('Getting Organized! 📝');
+                }
+                
+                // Hour of focus
+                if (!this.data.milestones.hourOfFocus && this.data.timerSessions.totalTimeTracked >= 3600) {
+                    this.data.milestones.hourOfFocus = true;
+                    newAchievements.push('Hour of Focus! ⏰');
+                }
+                
+                // Day of productivity (8+ hours runtime)
+                if (!this.data.milestones.dayOfProductivity && this.data.totalRuntime >= 28800000) {
+                    this.data.milestones.dayOfProductivity = true;
+                    newAchievements.push('Productivity Champion! 🏆');
+                }
+                
+                // Show new achievements
+                newAchievements.forEach(achievement => {
+                    this.data.achievements.push({
+                        name: achievement,
+                        date: new Date().toISOString()
+                    });
+                    
+                    // Show achievement notification
+                    if (window.statusTicker) {
+                        window.statusTicker.setManual(`🎉 ${achievement}`, 'success', 5000);
+                    }
+                });
+            },
+            
+            // Save data to localStorage
+            save() {
+                try {
+                    localStorage.setItem('ucanduit-analytics', JSON.stringify(this.data));
+                } catch (error) {
+                    console.warn('Could not save analytics data:', error);
+                }
+            },
+            
+            // Auto-save periodically
+            setupPeriodicSave() {
+                setInterval(() => {
+                    this.save();
+                }, 30000); // Save every 30 seconds
+            },
+            
+            // Get formatted session summary
+            getSessionSummary() {
+                const runtime = Math.floor(this.data.currentSessionDuration / 1000 / 60); // minutes
+                const totalHours = Math.floor(this.data.totalRuntime / 1000 / 60 / 60);
+                
+                return {
+                    sessionRuntime: `${runtime} minutes`,
+                    totalRuntime: `${totalHours} hours`,
+                    totalTimers: this.data.timerSessions.total,
+                    totalTodos: this.data.todoMetrics.itemsCreated,
+                    completedTodos: this.data.todoMetrics.itemsCompleted,
+                    achievements: this.data.achievements.length
+                };
+            },
+            
+            // Export all data
+            exportData() {
+                return {
+                    exportDate: new Date().toISOString(),
+                    ...this.data,
+                    summary: this.getSessionSummary()
+                };
+            },
+            
+            // Cleanup on app close
+            shutdown() {
+                if (this.sessionInterval) {
+                    clearInterval(this.sessionInterval);
+                }
+                
+                // Stop any active ambient tracking
+                this.trackAmbientStop();
+                
+                this.save();
+                console.log('Analytics shutdown complete');
+            }
+        };
+        
         window.timerUpdate = function(progress, isRunning) {
             if (oscilloscope && isRunning) {
                 oscilloscope.breathingCircles.forEach((circle, index) => {
@@ -1211,10 +1531,20 @@
             randomizeBackground();
             initializeWindow();
             
+            // Initialize usage analytics
+            window.usageAnalytics.init();
+            
             // Start ticker after a brief delay to let everything initialize
             setTimeout(() => {
                 window.statusTicker.start();
             }, 1000);
+        });
+        
+        // Cleanup when page unloads
+        window.addEventListener('beforeunload', () => {
+            if (window.usageAnalytics) {
+                window.usageAnalytics.shutdown();
+            }
         });
     </script>
     

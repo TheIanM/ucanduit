@@ -1428,16 +1428,34 @@
             }
             
             updateWaveformData() {
-                // Check for ambient noise data from child iframe
+                // Check for data from both focus noise generator and ambient sounds
+                const focusNoiseData = window.childFocusNoise ? window.childFocusNoise.getCombinedAudioData() : null;
                 const ambientData = window.childAmbientNoise ? window.childAmbientNoise.getCombinedAudioData() : null;
                 
-                if (ambientData) {
-                    // Use ambient noise data for visualization
-                    if (this.dataArray.length !== ambientData.length) {
-                        this.dataArray = new Uint8Array(ambientData.length);
-                        this.bufferLength = ambientData.length;
+                if (focusNoiseData || ambientData) {
+                    // Combine data from both sources
+                    let combinedData = null;
+                    
+                    if (focusNoiseData && ambientData) {
+                        // Both active - combine them
+                        const maxLength = Math.max(focusNoiseData.length, ambientData.length);
+                        combinedData = new Uint8Array(maxLength);
+                        for (let i = 0; i < maxLength; i++) {
+                            const focus = i < focusNoiseData.length ? focusNoiseData[i] : 0;
+                            const ambient = i < ambientData.length ? ambientData[i] : 0;
+                            combinedData[i] = Math.min(255, focus + ambient);
+                        }
+                    } else {
+                        // Use whichever is active
+                        combinedData = focusNoiseData || ambientData;
                     }
-                    this.dataArray.set(ambientData);
+                    
+                    // Use combined audio data for visualization
+                    if (this.dataArray.length !== combinedData.length) {
+                        this.dataArray = new Uint8Array(combinedData.length);
+                        this.bufferLength = combinedData.length;
+                    }
+                    this.dataArray.set(combinedData);
                     this.hasActiveAudio = true;
                     
                 } else if (this.analyser && this.isPlaying) {

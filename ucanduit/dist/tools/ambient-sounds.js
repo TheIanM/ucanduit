@@ -1,6 +1,6 @@
 /**
- * Ambient Sounds Tool - ES6 Module
- * Handles procedural noise generation and ambient sound mixing
+ * Focus Noise Generator Tool - ES6 Module
+ * Handles procedural noise generation for focus and concentration
  */
 
 // Standalone Noise Generator class
@@ -61,7 +61,7 @@ class NoiseGenerator {
     }
 }
 
-export class AmbientSoundsTool {
+export class FocusNoiseGeneratorTool {
     constructor(container) {
         this.container = container;
         this.audioContext = null;
@@ -70,12 +70,10 @@ export class AmbientSoundsTool {
         this.isInitialized = false;
         this.noiseGenerator = null;
         
-        // Fixed sound configurations with proper audible frequency ranges
+        // Noise generator configurations
         this.soundConfigs = {
-            rain: { frequency: 800, type: 'white', baseGain: 0.4, file: 'audio/rain.mp3' },
-            cafe: { frequency: 600, type: 'pink', baseGain: 0.3, file: 'audio/cafe.mp3' },
-            forest: { frequency: 400, type: 'brown', baseGain: 0.35, file: 'audio/forest.mp3' },
-            ocean: { frequency: 300, type: 'white', baseGain: 0.45, file: 'audio/ocean.mp3' }
+            'white-noise': { frequency: 800, type: 'white', baseGain: 0.4 },
+            'brown-noise': { frequency: 300, type: 'brown', baseGain: 0.45 }
         };
         
         this.render();
@@ -102,8 +100,8 @@ export class AmbientSoundsTool {
                         font-weight: 600;
                         color: #2a2d34;
                         text-align: center;
-                    ">Rain</div>
-                    <input type="range" class="volume-slider" data-sound="rain" min="0" max="100" value="0" 
+                    ">White Noise</div>
+                    <input type="range" class="volume-slider" data-sound="white-noise" min="0" max="100" value="0" 
                            style="
                         -webkit-appearance: none;
                         appearance: none;
@@ -129,62 +127,8 @@ export class AmbientSoundsTool {
                         font-weight: 600;
                         color: #2a2d34;
                         text-align: center;
-                    ">Coffee Shop</div>
-                    <input type="range" class="volume-slider" data-sound="cafe" min="0" max="100" value="0"
-                           style="
-                        -webkit-appearance: none;
-                        appearance: none;
-                        width: 100%;
-                        height: 12px;
-                        border-radius: 8px;
-                        background: #F5F5F5;
-                        border: 2px solid #2a2d34;
-                        outline: none;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        --thumb-scale: 1;
-                    ">
-                </div>
-                <div class="noise-item" style="
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                    padding: 8px 0;
-                ">
-                    <div class="noise-label" style="
-                        font-size: 16px;
-                        font-weight: 600;
-                        color: #2a2d34;
-                        text-align: center;
-                    ">Forest</div>
-                    <input type="range" class="volume-slider" data-sound="forest" min="0" max="100" value="0"
-                           style="
-                        -webkit-appearance: none;
-                        appearance: none;
-                        width: 100%;
-                        height: 12px;
-                        border-radius: 8px;
-                        background: #F5F5F5;
-                        border: 2px solid #2a2d34;
-                        outline: none;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        --thumb-scale: 1;
-                    ">
-                </div>
-                <div class="noise-item" style="
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                    padding: 8px 0;
-                ">
-                    <div class="noise-label" style="
-                        font-size: 16px;
-                        font-weight: 600;
-                        color: #2a2d34;
-                        text-align: center;
-                    ">Ocean</div>
-                    <input type="range" class="volume-slider" data-sound="ocean" min="0" max="100" value="0"
+                    ">Brown Noise</div>
+                    <input type="range" class="volume-slider" data-sound="brown-noise" min="0" max="100" value="0"
                            style="
                         -webkit-appearance: none;
                         appearance: none;
@@ -309,11 +253,11 @@ export class AmbientSoundsTool {
             await Promise.all(soundPromises);
             
             this.isInitialized = true;
-            console.log('Ambient noise system initialized');
+            console.log('Focus noise generator initialized');
             
             // Expose to parent for OssC integration
-            if (window.childAmbientNoise !== this) {
-                window.childAmbientNoise = this;
+            if (window.childFocusNoise !== this) {
+                window.childFocusNoise = this;
             }
         } catch (error) {
             console.error('Failed to initialize ambient noise system:', error);
@@ -475,8 +419,8 @@ export class AmbientSoundsTool {
         this.container.innerHTML = '';
         
         // Remove from parent reference
-        if (window.childAmbientNoise === this) {
-            window.childAmbientNoise = null;
+        if (window.childFocusNoise === this) {
+            window.childFocusNoise = null;
         }
     }
 }

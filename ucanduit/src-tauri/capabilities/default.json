@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "windows": [
-    "main"
+    "splash",
+    "app"
   ],
   "permissions": [
     "core:default",
@@ -13,6 +14,10 @@
     "core:window:allow-available-monitors",
     "core:window:allow-current-monitor",
     "core:window:allow-outer-position",
+    "core:window:allow-close",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:webview:allow-create-webview-window",
     "fs:default",
     "fs:allow-read-dir",
     "fs:allow-read-file",

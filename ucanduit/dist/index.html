@@ -327,11 +327,35 @@
                 
                 setTimeout(async () => {
                     await window.resizeVertical();
+                    
+                    // Show window after resize is complete to prevent visual tearing
+                    try {
+                        await window.tauriWindow.show();
+                        console.log('Window revealed after successful initialization');
+                    } catch (error) {
+                        console.warn('Could not show window:', error);
+                        // Fallback: try to show anyway in case of API issues
+                        try {
+                            await window.tauriWindow.setVisible(true);
+                        } catch (fallbackError) {
+                            console.error('Both show methods failed:', fallbackError);
+                        }
+                    }
                 }, 500);
                 
             } catch (error) {
                 console.error('Error initializing window:', error);
                 document.getElementById('status-badge').textContent = 'Error: ' + error.message;
+                
+                // Show window even on error to prevent it from staying hidden
+                try {
+                    if (window.tauriWindow) {
+                        await window.tauriWindow.show();
+                        console.log('Window shown despite initialization error');
+                    }
+                } catch (showError) {
+                    console.error('Could not show window after error:', showError);
+                }
             }
         }
         
@@ -377,6 +401,13 @@
                 console.log(`✅ Resized to horizontal mode: ${config.width}x${config.height} at position ${config.x},${config.y}`);
                 console.log('=== END HORIZONTAL MODE DEBUG ===');
                 document.getElementById('status-badge').textContent = `Horizontal Mode - ${config.width}x${config.height}`;
+                
+                // Ensure window is visible (in case it was hidden during startup)
+                try {
+                    await window.tauriWindow.show();
+                } catch (error) {
+                    console.warn('Could not ensure window visibility:', error);
+                }
             } catch (error) {
                 console.error('❌ Error resizing horizontally:', error);
                 console.error('Error stack:', error.stack);

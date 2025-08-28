@@ -9,14 +9,17 @@
   "app": {
     "windows": [
       {
+        "label": "splash",
         "title": "ucanduit",
-        "width": 800,
-        "height": 600,
-        "resizable": true,
+        "url": "splash.html",
+        "width": 400,
+        "height": 300,
+        "resizable": false,
         "fullscreen": false,
         "alwaysOnTop": true,
-        "decorations": true,
-        "transparent": true
+        "decorations": false,
+        "transparent": true,
+        "center": true
       }
     ],
     "security": {

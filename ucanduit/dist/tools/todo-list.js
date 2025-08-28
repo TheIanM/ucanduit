@@ -10,6 +10,7 @@ export class TodoListTool {
         this.lists = {};
         this.activeListId = null;
         this.currentView = 'lists'; // 'lists' or 'items'
+        this.backgroundColors = ['#4ecf9d', '#3f88c5', '#d72638', '#FF6B9F', '#FF9B54', '#B06BFF'];
         
         this.initialize();
     }
@@ -18,6 +19,82 @@ export class TodoListTool {
         await this.loadFromStorage();
         this.render();
         this.bindEvents();
+        this.applyBreathingBackgrounds();
+    }
+    
+    // Generate individual breathing circle animation for an element
+    createBreathingBackground(element) {
+        // Get current background color from main app (or use random)
+        const selectedColor = window.currentBackgroundColor || 
+                            this.backgroundColors[Math.floor(Math.random() * this.backgroundColors.length)];
+        
+        // Create a unique breathing circle for this element
+        const size = 80 + Math.random() * 120; // Smaller than main bg circles
+        const delay = Math.random() * 20;
+        const duration = 15 + Math.random() * 10; // Slightly faster than main
+        const opacity = 0.15 + Math.random() * 0.2; // More subtle
+        
+        element.style.position = 'relative';
+        element.style.overflow = 'hidden';
+        
+        // Create the breathing circle
+        const circle = document.createElement('div');
+        circle.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: ${size}px;
+            height: ${size}px;
+            background-color: ${selectedColor};
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            filter: blur(30px);
+            opacity: ${opacity};
+            animation: breathingPulse ${duration}s infinite alternate ease-in-out ${delay}s;
+            z-index: 0;
+            pointer-events: none;
+        `;
+        
+        element.insertBefore(circle, element.firstChild);
+        
+        // Ensure text content stays above the circle
+        const textElements = element.querySelectorAll('*:not([style*="z-index"])');
+        textElements.forEach(el => {
+            el.style.position = 'relative';
+            el.style.zIndex = '1';
+        });
+    }
+    
+    // Apply breathing backgrounds to all todo components
+    applyBreathingBackgrounds() {
+        // Add CSS animation if not already present
+        if (!document.getElementById('breathing-animation')) {
+            const style = document.createElement('style');
+            style.id = 'breathing-animation';
+            style.textContent = `
+                @keyframes breathingPulse {
+                    0% {
+                        transform: translate(-50%, -50%) scale(0.8);
+                        opacity: 0.1;
+                    }
+                    100% {
+                        transform: translate(-50%, -50%) scale(1.2);
+                        opacity: 0.3;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Apply to all todo components
+        setTimeout(() => {
+            const todoItems = this.container.querySelectorAll('.todo-list-item, .todo-item, .add-button, .back-button, .confirm-add, .cancel-add');
+            todoItems.forEach(element => {
+                if (!element.querySelector('div[style*="breathingPulse"]')) {
+                    this.createBreathingBackground(element);
+                }
+            });
+        }, 100); // Small delay to ensure elements are rendered
     }
     
     render() {
@@ -74,7 +151,7 @@ export class TodoListTool {
             
             <style>
                 .add-button {
-                    background: var(--translucent-bg) !important;
+                    background: transparent !important;
                     color: var(--text-primary) !important;
                     border: 3px solid var(--text-primary) !important;
                     border-radius: 20px !important;
@@ -84,12 +161,10 @@ export class TodoListTool {
                     cursor: pointer !important;
                     transition: all 0.2s ease !important;
                     font-family: 'Quicksand', sans-serif !important;
-                    backdrop-filter: blur(10px) !important;
-                    -webkit-backdrop-filter: blur(10px) !important;
                 }
                 
                 .cancel-add, .confirm-add {
-                    background: var(--translucent-bg) !important;
+                    background: transparent !important;
                     color: var(--text-primary) !important;
                     border: 3px solid var(--text-primary) !important;
                     border-radius: 20px !important;
@@ -99,8 +174,6 @@ export class TodoListTool {
                     cursor: pointer !important;
                     font-family: 'Quicksand', sans-serif !important;
                     transition: all 0.2s ease !important;
-                    backdrop-filter: blur(10px) !important;
-                    -webkit-backdrop-filter: blur(10px) !important;
                 }
                 
                 .cancel-add {
@@ -108,7 +181,7 @@ export class TodoListTool {
                 }
                 
                 .todo-list-item, .todo-item {
-                    background: var(--translucent-bg);
+                    background: transparent;
                     border: 2px solid var(--text-primary);
                     border-radius: 12px;
                     margin-bottom: 8px;
@@ -117,8 +190,6 @@ export class TodoListTool {
                     transition: all 0.2s ease;
                     font-weight: 600;
                     position: relative;
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
                     color: var(--text-primary);
                 }
                 
@@ -167,7 +238,7 @@ export class TodoListTool {
                 }
                 
                 .back-button {
-                    background: var(--translucent-bg);
+                    background: transparent;
                     color: var(--text-primary);
                     border: 3px solid var(--text-primary);
                     border-radius: 20px;
@@ -178,8 +249,6 @@ export class TodoListTool {
                     margin-right: 10px;
                     font-family: 'Quicksand', sans-serif;
                     transition: all 0.2s ease;
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
                 }
                 
                 .back-button:hover, .add-button:hover, .cancel-add:hover, .confirm-add:hover {
@@ -385,12 +454,14 @@ export class TodoListTool {
         this.currentView = 'lists';
         this.activeListId = null;
         this.updateView();
+        setTimeout(() => this.applyBreathingBackgrounds(), 50);
     }
     
     showItems(listId) {
         this.currentView = 'items';
         this.activeListId = listId;
         this.updateView();
+        setTimeout(() => this.applyBreathingBackgrounds(), 50);
     }
     
     async toggleItem(itemId) {

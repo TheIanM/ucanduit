@@ -351,6 +351,29 @@ export class AmbientSoundsTool {
             });
         });
         
+        // Restore slider states if audio is currently playing
+        this.restoreSliderStates();
+    }
+    
+    // Restore slider values based on current audio state
+    restoreSliderStates() {
+        for (const [soundName, sound] of Object.entries(this.sounds)) {
+            if (sound && sound.volume > 0) {
+                // Calculate volume percentage from stored volume
+                const volumePercent = Math.round((sound.volume / sound.config.baseGain) * 100);
+                
+                const slider = this.container.querySelector(`[data-sound="${soundName}"]`);
+                if (slider && volumePercent > 0) {
+                    slider.value = volumePercent;
+                    
+                    // Also restore visual scale
+                    const scale = 1 + (volumePercent / 100) * 0.5;
+                    slider.style.setProperty('--thumb-scale', scale);
+                    
+                    console.log(`Restored ${soundName} slider to ${volumePercent}%`);
+                }
+            }
+        }
     }
     
     async initialize() {
@@ -786,7 +809,16 @@ export class AmbientSoundsTool {
         return hasActiveSound ? combinedData : null;
     }
     
-    // Cleanup method for when tool is unloaded
+    // Cleanup UI only (for selective unloading)
+    destroyUI() {
+        // Clear DOM but preserve audio state
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+        console.log('Ambient sounds UI destroyed, audio preserved');
+    }
+    
+    // Full cleanup method for when tool is completely unloaded
     destroy() {
         // Stop all sounds and clear timeouts
         Object.keys(this.sounds).forEach(soundName => {
@@ -799,11 +831,15 @@ export class AmbientSoundsTool {
         }
         
         // Clear DOM
-        this.container.innerHTML = '';
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
         
         // Remove from parent reference
         if (window.childAmbientNoise === this) {
             window.childAmbientNoise = null;
         }
+        
+        console.log('Ambient sounds fully destroyed');
     }
 }

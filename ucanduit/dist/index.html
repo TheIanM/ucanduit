@@ -465,6 +465,7 @@
         
         // Tool management system
         window.loadedTools = {};
+        window.persistentAudio = {}; // Store audio state for collapsed tools
         
         // Collapsible section functions with ES6 module loading
         window.toggleSection = async function(sectionName) {
@@ -485,9 +486,9 @@
                     console.error(`Failed to load ${sectionName} tool:`, error);
                 }
             } else {
-                // Collapsing - unload to save memory
-                unloadTool(sectionName);
-                console.log(`Unloaded ${sectionName} tool module`);
+                // Collapsing - selectively unload to save memory
+                selectiveUnloadTool(sectionName);
+                console.log(`Selectively unloaded ${sectionName} tool module`);
             }
         };
         
@@ -495,6 +496,30 @@
         async function loadTool(toolName, container) {
             if (window.loadedTools[toolName]) {
                 console.log(`Tool ${toolName} already loaded`);
+                return;
+            }
+            
+            // Check if we have persistent audio for this tool
+            if (window.persistentAudio[toolName]) {
+                console.log(`Restoring persistent audio tool: ${toolName}`);
+                const persistentData = window.persistentAudio[toolName];
+                
+                // Restore the tool instance and re-render UI
+                window.loadedTools[toolName] = persistentData.instance;
+                persistentData.instance.container = container;
+                
+                // Re-render the UI
+                if (typeof persistentData.instance.render === 'function') {
+                    persistentData.instance.render();
+                }
+                if (typeof persistentData.instance.bindEvents === 'function') {
+                    persistentData.instance.bindEvents();
+                }
+                
+                // Clean up persistent storage
+                delete window.persistentAudio[toolName];
+                
+                console.log(`Successfully restored persistent ${toolName} tool with audio intact`);
                 return;
             }
             
@@ -532,7 +557,39 @@
             }
         }
         
-        // Unload tool and cleanup
+        // Selective unload tool - preserves audio for music/ambient tools
+        function selectiveUnloadTool(toolName) {
+            if (window.loadedTools[toolName]) {
+                const toolInstance = window.loadedTools[toolName];
+                
+                // Check if this is an audio tool that should persist
+                if (isAudioTool(toolName)) {
+                    console.log(`Preserving audio state for ${toolName}`);
+                    
+                    // Store audio persistence data
+                    window.persistentAudio[toolName] = {
+                        instance: toolInstance,
+                        globalReference: getGlobalAudioReference(toolName)
+                    };
+                    
+                    // Only destroy UI components, keep audio running
+                    if (typeof toolInstance.destroyUI === 'function') {
+                        toolInstance.destroyUI();
+                    } else if (toolInstance.container) {
+                        // Fallback: clear container but preserve tool instance
+                        toolInstance.container.innerHTML = '';
+                    }
+                } else {
+                    // Non-audio tools: full unload
+                    if (typeof toolInstance.destroy === 'function') {
+                        toolInstance.destroy();
+                    }
+                    delete window.loadedTools[toolName];
+                }
+            }
+        }
+        
+        // Unload tool and cleanup (full unload)
         function unloadTool(toolName) {
             if (window.loadedTools[toolName]) {
                 // Call destroy method if it exists
@@ -543,6 +600,27 @@
                 // Remove reference
                 delete window.loadedTools[toolName];
             }
+            
+            // Also clean up persistent audio if it exists
+            if (window.persistentAudio[toolName]) {
+                const persistentData = window.persistentAudio[toolName];
+                if (persistentData.instance && typeof persistentData.instance.destroy === 'function') {
+                    persistentData.instance.destroy();
+                }
+                delete window.persistentAudio[toolName];
+            }
+        }
+        
+        // Helper: Check if tool is audio-based
+        function isAudioTool(toolName) {
+            return toolName === 'sounds' || toolName === 'ambient';
+        }
+        
+        // Helper: Get global audio reference for tool
+        function getGlobalAudioReference(toolName) {
+            if (toolName === 'sounds') return 'childFocusNoise';
+            if (toolName === 'ambient') return 'childAmbientNoise';
+            return null;
         }
 
         // Ticker tape system for status rotation

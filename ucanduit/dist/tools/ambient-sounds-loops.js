@@ -110,6 +110,7 @@ export class AmbientSoundsTool {
             
             const { core } = window.__TAURI__;
             const audioDirectories = await core.invoke('scan_audio_directories');
+            console.log('directory list:',audioDirectories);
             
             // Build sound configurations from discovered directories
             this.soundConfigs = {};
@@ -140,7 +141,6 @@ export class AmbientSoundsTool {
                     fileCount: dir.file_count
                 };
             }
-            
             return true;
             
         } catch (error) {
@@ -151,9 +151,14 @@ export class AmbientSoundsTool {
     }
     
     // Scan directory for audio files 
+    
+    
     async scanDirectory(directory, forceRefresh = false) {
+        console.log('🔍 About to scan directory:', directory);
+        console.log('🔍 Directory type:', typeof directory);
         const cacheKey = directory;
         if (!forceRefresh && this.directoryCache.has(cacheKey)) {
+            console.log('🔍 Using cached result for:', directory);
             return this.directoryCache.get(cacheKey);
         }
         
@@ -161,6 +166,7 @@ export class AmbientSoundsTool {
             await this.waitForTauri();
             
             const { core } = window.__TAURI__;
+            
             const result = await core.invoke('scan_audio_directory', { 
                 directoryPath: directory 
             });
@@ -351,17 +357,13 @@ export class AmbientSoundsTool {
         if (this.isInitialized) return;
         
         const statusEl = this.container.querySelector('#audio-status');
-        statusEl.style.display = 'block';
+        if (statusEl) {
+            statusEl.style.display = 'block';
+        }
         
         try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            if (this.audioContext.state === 'suspended') {
-                await this.audioContext.resume();
-            }
-            
-            this.masterGain = this.audioContext.createGain();
-            this.masterGain.connect(this.audioContext.destination);
+            // HTML5 Audio doesn't need Web Audio Context initialization
+            console.log('Initializing HTML5 Audio system...');
             
             // Pre-load all audio files
             const soundPromises = Object.entries(this.soundConfigs).map(async ([name, config]) => {
@@ -371,12 +373,14 @@ export class AmbientSoundsTool {
             await Promise.all(soundPromises);
             
             this.isInitialized = true;
-            statusEl.textContent = 'Ambient sounds ready';
-            setTimeout(() => {
-                statusEl.style.display = 'none';
-            }, 2000);
+            if (statusEl) {
+                statusEl.textContent = 'Ambient sounds ready';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 2000);
+            }
             
-            console.log('Ambient sounds system initialized');
+            console.log('HTML5 ambient sounds system initialized');
             
             // Expose to parent for OssC integration
             if (window.childAmbientNoise !== this) {
@@ -385,78 +389,97 @@ export class AmbientSoundsTool {
             
         } catch (error) {
             console.error('Failed to initialize ambient sounds system:', error);
-            statusEl.textContent = 'Failed to load audio files';
-            statusEl.style.color = '#e74c3c';
+            if (statusEl) {
+                statusEl.textContent = 'Failed to load audio files';
+                statusEl.style.color = '#e74c3c';
+            }
         }
     }
     
     async createAmbientSound(config, forceRefresh = false) {
         const sound = {
-            source: null,
-            audioBuffers: [],
+            audioElements: [],  // Changed from audioBuffers to audioElements
             availableFiles: [],
-            currentBufferIndex: 0,
-            gainNode: null,
+            currentIndex: 0,
             isPlaying: false,
             config: config,
-            loaded: false
+            loaded: false,
+            volume: 0,
+            rotationTimeout: null
         };
         
         try {
             sound.availableFiles = await this.scanDirectory(config.directory, forceRefresh);
             
             if (sound.availableFiles.length > 0) {
-                const loadPromises = sound.availableFiles.map(async (file) => {
+                // Filter files by format preference (MP3 first, then OGG)
+                const mp3Files = sound.availableFiles.filter(file => file.toLowerCase().endsWith('.mp3'));
+                const oggFiles = sound.availableFiles.filter(file => file.toLowerCase().endsWith('.ogg'));
+                
+                // Use MP3 files if available, otherwise use OGG
+                const filesToUse = mp3Files.length > 0 ? mp3Files : oggFiles;
+                
+                const loadPromises = filesToUse.map(async (file) => {
                     try {
-                        console.log(`Loading audio file: ${file}`);
-                        const response = await fetch(file, {
-                            headers: {
-                                'Accept': 'audio/*,*/*'
-                            }
+                        console.log(`Loading HTML5 audio: ${file}`);
+                        
+                        const audio = new Audio(file);
+                        audio.crossOrigin = 'anonymous';
+                        audio.preload = 'none';
+                        audio.loop = true;
+                        audio.volume = 0; // Start muted
+                        audio.src = file;
+                        
+                        // Wait for the audio to be ready
+                        await new Promise((resolve, reject) => {
+                            audio.addEventListener('canplaythrough', resolve);
+                            audio.addEventListener('error', (e) => {
+                                const error = audio.error;
+                                let errorMessage = 'Unknown audio error';
+                                if (error) {
+                                    switch(error.code) {
+                                        case error.MEDIA_ERR_ABORTED:
+                                            errorMessage = 'Audio loading aborted';
+                                            break;
+                                        case error.MEDIA_ERR_NETWORK:
+                                            errorMessage = 'Network error while loading audio';
+                                            break;
+                                        case error.MEDIA_ERR_DECODE:
+                                            errorMessage = 'Audio decoding error';
+                                            break;
+                                        case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                                            errorMessage = 'Audio format not supported';
+                                            break;
+                                    }
+                                }
+                                reject(new Error(`${errorMessage} (code: ${error?.code})`));
+                            });
+                            
+                            // Timeout after 10 seconds
+                            setTimeout(() => reject(new Error('Audio load timeout')), 10000);
                         });
                         
-                        if (response.ok) {
-                            const contentType = response.headers.get('content-type');
-                            console.log(`Content-Type for ${file}: ${contentType}`);
-                            
-                            const arrayBuffer = await response.arrayBuffer();
-                            console.log(`ArrayBuffer size for ${file}: ${arrayBuffer.byteLength} bytes`);
-                            
-                            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-                            console.log(`Successfully decoded ${file}`);
-                            return { file, audioBuffer };
-                        } else {
-                            console.error(`HTTP error for ${file}: ${response.status} ${response.statusText}`);
-                        }
-                        return null;
+                        console.log(`Successfully loaded ${file}`);
+                        return { file, audio };
                     } catch (error) {
-                        console.error(`Failed to load ${file}:`, error.name, error.message);
+                        console.error(`Failed to load ${file}:`, error.message);
                         return null;
                     }
                 });
                 
                 const results = await Promise.all(loadPromises);
-                sound.audioBuffers = results.filter(result => result !== null);
-                sound.loaded = sound.audioBuffers.length > 0;
+                sound.audioElements = results.filter(result => result !== null);
+                sound.loaded = sound.audioElements.length > 0;
             }
         } catch (error) {
             console.warn(`Failed to load sounds for ${config.displayName}:`, error);
         }
-        
-        sound.gainNode = this.audioContext.createGain();
-        sound.gainNode.gain.value = 0;
-        sound.gainNode.connect(this.masterGain);
         
         return sound;
     }
     
     startSound(soundName) {
         console.log(`🔊 Starting sound: ${soundName}`);
-        
-        if (!this.isInitialized) {
-            console.log(`❌ Audio context not initialized for ${soundName}`);
-            return;
-        }
         
         if (!this.sounds[soundName]) {
             console.log(`❌ Sound ${soundName} not found`);
@@ -475,24 +498,22 @@ export class AmbientSoundsTool {
             return;
         }
         
-        if (sound.audioBuffers.length === 0) {
-            console.log(`❌ No audio buffers available for ${soundName}`);
+        if (sound.audioElements.length === 0) {
+            console.log(`❌ No audio elements available for ${soundName}`);
             return;
         }
         
-        // Select random audio buffer from available options
-        const randomIndex = Math.floor(Math.random() * sound.audioBuffers.length);
-        const selectedBuffer = sound.audioBuffers[randomIndex].audioBuffer;
+        // Select random audio element from available options
+        const randomIndex = Math.floor(Math.random() * sound.audioElements.length);
+        const selectedElement = sound.audioElements[randomIndex];
         
-        console.log(`🎵 Playing ${soundName} buffer ${randomIndex}: ${sound.audioBuffers[randomIndex].file}`);
+        console.log(`🎵 Playing ${soundName} file ${randomIndex}: ${selectedElement.file}`);
         
-        sound.source = this.audioContext.createBufferSource();
-        sound.source.buffer = selectedBuffer;
-        sound.source.loop = true;
-        sound.source.connect(sound.gainNode);
+        selectedElement.audio.currentTime = 0;
+        selectedElement.audio.volume = sound.volume;
+        selectedElement.audio.play();
         
-        // Set up rotation to next file when this one would naturally end
-        // But since it's looping, we'll rotate after a random duration (3-8 minutes)
+        // Set up rotation to next file after a random duration (3-8 minutes)
         const rotationTime = (3 + Math.random() * 5) * 60 * 1000; // 3-8 minutes
         sound.rotationTimeout = setTimeout(() => {
             if (sound.isPlaying) {
@@ -500,66 +521,71 @@ export class AmbientSoundsTool {
             }
         }, rotationTime);
         
-        sound.source.start();
         sound.isPlaying = true;
-        sound.currentBufferIndex = randomIndex;
+        sound.currentIndex = randomIndex;
     }
     
     rotateSound(soundName) {
         const sound = this.sounds[soundName];
-        if (!sound.isPlaying || sound.audioBuffers.length <= 1) return;
+        if (!sound.isPlaying || sound.audioElements.length <= 1) return;
         
-        const currentVolume = sound.gainNode.gain.value;
+        const currentElement = sound.audioElements[sound.currentIndex];
+        const currentVolume = sound.volume;
         
         // Fade out current sound
-        sound.gainNode.gain.setValueAtTime(currentVolume, this.audioContext.currentTime);
-        sound.gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 2);
-        
-        // Stop current sound after fade
-        setTimeout(() => {
-            if (sound.source) {
-                sound.source.stop();
-                sound.source = null;
+        const fadeOutInterval = setInterval(() => {
+            if (currentElement.audio.volume > 0.1) {
+                currentElement.audio.volume -= 0.1;
+            } else {
+                clearInterval(fadeOutInterval);
+                currentElement.audio.pause();
+                currentElement.audio.currentTime = 0;
+                
+                // Start new random sound
+                const availableIndices = sound.audioElements
+                    .map((_, index) => index)
+                    .filter(index => index !== sound.currentIndex);
+                
+                if (availableIndices.length > 0) {
+                    const nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+                    const nextElement = sound.audioElements[nextIndex];
+                    
+                    sound.currentIndex = nextIndex;
+                    nextElement.audio.volume = 0;
+                    nextElement.audio.currentTime = 0;
+                    nextElement.audio.play();
+                    
+                    // Fade in new sound
+                    const fadeInInterval = setInterval(() => {
+                        if (nextElement.audio.volume < currentVolume) {
+                            nextElement.audio.volume = Math.min(currentVolume, nextElement.audio.volume + 0.1);
+                        } else {
+                            clearInterval(fadeInInterval);
+                        }
+                    }, 200);
+                    
+                    // Set up next rotation
+                    const rotationTime = (3 + Math.random() * 5) * 60 * 1000;
+                    sound.rotationTimeout = setTimeout(() => {
+                        if (sound.isPlaying) {
+                            this.rotateSound(soundName);
+                        }
+                    }, rotationTime);
+                }
             }
-            
-            // Start new random sound
-            const availableIndices = sound.audioBuffers
-                .map((_, index) => index)
-                .filter(index => index !== sound.currentBufferIndex);
-            
-            if (availableIndices.length > 0) {
-                const nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-                const nextBuffer = sound.audioBuffers[nextIndex].audioBuffer;
-                
-                sound.source = this.audioContext.createBufferSource();
-                sound.source.buffer = nextBuffer;
-                sound.source.loop = true;
-                sound.source.connect(sound.gainNode);
-                sound.source.start();
-                sound.currentBufferIndex = nextIndex;
-                
-                // Fade in new sound
-                sound.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                sound.gainNode.gain.linearRampToValueAtTime(currentVolume, this.audioContext.currentTime + 2);
-                
-                // Set up next rotation
-                const rotationTime = (3 + Math.random() * 5) * 60 * 1000;
-                sound.rotationTimeout = setTimeout(() => {
-                    if (sound.isPlaying) {
-                        this.rotateSound(soundName);
-                    }
-                }, rotationTime);
-            }
-        }, 2000);
+        }, 200);
     }
     
     stopSound(soundName) {
         if (!this.sounds[soundName]) return;
         
         const sound = this.sounds[soundName];
-        if (sound.source && sound.isPlaying) {
-            sound.source.stop();
-            sound.source = null;
+        if (sound.isPlaying) {
+            // Stop current playing audio element
+            if (sound.audioElements[sound.currentIndex]) {
+                sound.audioElements[sound.currentIndex].audio.pause();
+                sound.audioElements[sound.currentIndex].audio.currentTime = 0;
+            }
             sound.isPlaying = false;
         }
         
@@ -575,13 +601,15 @@ export class AmbientSoundsTool {
         
         const sound = this.sounds[soundName];
         const normalizedVolume = (volume / 100) * sound.config.baseGain;
+        sound.volume = normalizedVolume;
         
         if (volume > 0 && !sound.isPlaying && sound.loaded) {
             this.startSound(soundName);
         }
         
-        if (sound.gainNode) {
-            sound.gainNode.gain.setValueAtTime(normalizedVolume, this.audioContext.currentTime);
+        // Apply volume to currently playing audio element
+        if (sound.isPlaying && sound.audioElements[sound.currentIndex]) {
+            sound.audioElements[sound.currentIndex].audio.volume = normalizedVolume;
         }
         
         if (volume === 0 && sound.isPlaying) {
@@ -592,7 +620,7 @@ export class AmbientSoundsTool {
     async updateSoundVolume(soundName, volume) {
         if (!this.isInitialized) {
             // Only initialize the audio context, not reload sounds
-            await this.initializeAudioContext();
+            await this.initialize();
         }
         this.setVolume(soundName, volume);
         
@@ -604,23 +632,11 @@ export class AmbientSoundsTool {
     }
     
     // Initialize just the audio context (separate from full initialization)
+    // NOTE: HTML5 Audio doesn't need Web Audio Context, but keeping for compatibility
     async initializeAudioContext() {
-        if (this.audioContext) return; // Already initialized
-        
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            if (this.audioContext.state === 'suspended') {
-                await this.audioContext.resume();
-            }
-            
-            this.masterGain = this.audioContext.createGain();
-            this.masterGain.connect(this.audioContext.destination);
-            
-            console.log('Audio context initialized');
-        } catch (error) {
-            console.error('Failed to initialize audio context:', error);
-        }
+        console.log('HTML5 Audio - no audio context needed');
+        // HTML5 Audio elements manage their own audio context
+        return;
     }
     
     // Refresh audio cache - rescan all directories

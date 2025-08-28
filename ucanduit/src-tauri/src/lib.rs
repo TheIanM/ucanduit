@@ -66,6 +66,8 @@ async fn scan_audio_directories() -> Result<Vec<AudioDirectory>, String> {
 
 #[tauri::command]
 async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContents, String> {
+    println!("🦀 Scanning directory: {}", directory_path);
+    
     let current_dir = std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
     let project_root = current_dir.parent().ok_or("Cannot find project root")?;
     let path = if directory_path.starts_with('/') {
@@ -73,6 +75,8 @@ async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContent
     } else {
         project_root.join("public").join(&directory_path)
     };
+    
+    println!("🦀 Resolved path: {:?}", path);
     
     if !path.exists() {
         return Err(format!("Directory does not exist: {}", directory_path));
@@ -145,6 +149,7 @@ fn count_audio_files(dir_path: &Path) -> usize {
     count
 }
 
+
 #[tauri::command]
 async fn get_supported_audio_formats() -> Vec<String> {
     SUPPORTED_AUDIO_EXTENSIONS.iter().map(|&s| s.to_string()).collect()
@@ -215,6 +220,7 @@ async fn read_json_file(filename: String) -> Result<JsonValue, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_fs::init())
     .invoke_handler(tauri::generate_handler![
       scan_audio_directory,
       scan_audio_directories,

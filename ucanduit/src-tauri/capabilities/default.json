@@ -12,6 +12,21 @@
     "core:window:allow-set-position",
     "core:window:allow-available-monitors",
     "core:window:allow-current-monitor",
-    "core:window:allow-outer-position"
+    "core:window:allow-outer-position",
+    "fs:default",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-create",
+    "fs:allow-mkdir"
+  ],
+  "scopes": [
+    {
+      "allow": [
+        "$APPDATA/ucanduit/**",
+        "$HOME/.ucanduit/**",
+        "$CWD/public/audio/**"
+      ]
+    }
   ]
 }

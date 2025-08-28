@@ -364,7 +364,16 @@ export class AmbientSoundsTool {
         try {
             // Ensure Tauri is ready before loading audio files
             await this.waitForTauri();
-            console.log('Initializing HTML5 Audio system...');
+            console.log('Initializing hybrid audio system (Web Audio API + HTML5 fallback)...');
+            
+            // Initialize Web Audio Context for better performance
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+            
+            this.masterGain = this.audioContext.createGain();
+            this.masterGain.connect(this.audioContext.destination);
             
             // Initialize sound placeholders (no file loading yet)
             Object.entries(this.soundConfigs).forEach(([name, config]) => {
@@ -428,67 +437,83 @@ export class AmbientSoundsTool {
                 const filesToUse = mp3Files.length > 0 ? mp3Files : oggFiles;
                 
                 const loadPromises = filesToUse.map(async (file) => {
+                    // Try Web Audio API first, fallback to HTML5 Audio
+                    console.log(`Trying Web Audio API for: ${file}`);
+                    
                     try {
-                        console.log(`Loading HTML5 audio: ${file}`);
-                        
-                        const audio = new Audio();
-                        audio.crossOrigin = 'anonymous';
-                        audio.preload = 'none';
-                        audio.loop = true;
-                        audio.volume = 0; // Start muted
-                        
-                        // Follow Tauri docs pattern for asset loading
+                        // Web Audio API approach
                         const { convertFileSrc } = window.__TAURI__.core;
-                        
-                        // Use the absolute file path directly (it's already correct from Rust)
                         const assetUrl = convertFileSrc(file);
                         
-                        console.log(`Original path: ${file}`);
-                        console.log(`Asset URL: ${assetUrl}`);
+                        const response = await fetch(assetUrl);
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
                         
-                        // Set type based on file extension
-                        const ext = file.toLowerCase().split('.').pop();
-                        if (ext === 'mp3') audio.type = 'audio/mpeg';
-                        else if (ext === 'ogg') audio.type = 'audio/ogg';
-                        else if (ext === 'm4a') audio.type = 'audio/mp4';
+                        const arrayBuffer = await response.arrayBuffer();
+                        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
                         
-                        audio.src = assetUrl;
-                        audio.load(); // Explicit load call as per Tauri docs
+                        console.log(`✅ Web Audio API success: ${file}`);
+                        return { file, audioBuffer, useWebAudio: true };
                         
-                        // Wait for the audio to be ready
-                        await new Promise((resolve, reject) => {
-                            audio.addEventListener('canplaythrough', resolve);
-                            audio.addEventListener('error', (e) => {
-                                const error = audio.error;
-                                let errorMessage = 'Unknown audio error';
-                                if (error) {
-                                    switch(error.code) {
-                                        case error.MEDIA_ERR_ABORTED:
-                                            errorMessage = 'Audio loading aborted';
-                                            break;
-                                        case error.MEDIA_ERR_NETWORK:
-                                            errorMessage = 'Network error while loading audio';
-                                            break;
-                                        case error.MEDIA_ERR_DECODE:
-                                            errorMessage = 'Audio decoding error';
-                                            break;
-                                        case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                                            errorMessage = 'Audio format not supported';
-                                            break;
+                    } catch (webAudioError) {
+                        console.warn(`❌ Web Audio API failed for ${file}: ${webAudioError.message}`);
+                        console.log(`🔄 Falling back to HTML5 Audio for: ${file}`);
+                        
+                        try {
+                            // HTML5 Audio fallback
+                            const audio = new Audio();
+                            audio.crossOrigin = 'anonymous';
+                            audio.preload = 'none';
+                            audio.loop = true;
+                            audio.volume = 0;
+                            
+                            const { convertFileSrc } = window.__TAURI__.core;
+                            const assetUrl = convertFileSrc(file);
+                            
+                            // Set type based on file extension
+                            const ext = file.toLowerCase().split('.').pop();
+                            if (ext === 'mp3') audio.type = 'audio/mpeg';
+                            else if (ext === 'ogg') audio.type = 'audio/ogg';
+                            else if (ext === 'm4a') audio.type = 'audio/mp4';
+                            
+                            audio.src = assetUrl;
+                            audio.load();
+                            
+                            await new Promise((resolve, reject) => {
+                                audio.addEventListener('canplaythrough', resolve);
+                                audio.addEventListener('error', (e) => {
+                                    const error = audio.error;
+                                    let errorMessage = 'Unknown audio error';
+                                    if (error) {
+                                        switch(error.code) {
+                                            case error.MEDIA_ERR_ABORTED:
+                                                errorMessage = 'Audio loading aborted';
+                                                break;
+                                            case error.MEDIA_ERR_NETWORK:
+                                                errorMessage = 'Network error while loading audio';
+                                                break;
+                                            case error.MEDIA_ERR_DECODE:
+                                                errorMessage = 'Audio decoding error';
+                                                break;
+                                            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                                                errorMessage = 'Audio format not supported';
+                                                break;
+                                        }
                                     }
-                                }
-                                reject(new Error(`${errorMessage} (code: ${error?.code})`));
+                                    reject(new Error(`${errorMessage} (code: ${error?.code})`));
+                                });
+                                
+                                setTimeout(() => reject(new Error('Audio load timeout')), 10000);
                             });
                             
-                            // Timeout after 10 seconds
-                            setTimeout(() => reject(new Error('Audio load timeout')), 10000);
-                        });
-                        
-                        console.log(`Successfully loaded ${file}`);
-                        return { file, audio };
-                    } catch (error) {
-                        console.error(`Failed to load ${file}:`, error.message);
-                        return null;
+                            console.log(`✅ HTML5 Audio fallback success: ${file}`);
+                            return { file, audio, useWebAudio: false };
+                            
+                        } catch (html5Error) {
+                            console.error(`❌ Both Web Audio API and HTML5 Audio failed for ${file}:`, html5Error.message);
+                            return null;
+                        }
                     }
                 });
                 
@@ -534,9 +559,29 @@ export class AmbientSoundsTool {
         
         console.log(`🎵 Playing ${soundName} file ${randomIndex}: ${selectedElement.file}`);
         
-        selectedElement.audio.currentTime = 0;
-        selectedElement.audio.volume = sound.volume;
-        selectedElement.audio.play();
+        if (selectedElement.useWebAudio) {
+            // Web Audio API playback
+            const source = this.audioContext.createBufferSource();
+            source.buffer = selectedElement.audioBuffer;
+            source.loop = true;
+            
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = sound.volume;
+            
+            source.connect(gainNode);
+            gainNode.connect(this.masterGain);
+            
+            source.start();
+            
+            // Store references for later control
+            sound.currentSource = source;
+            sound.currentGainNode = gainNode;
+        } else {
+            // HTML5 Audio playback
+            selectedElement.audio.currentTime = 0;
+            selectedElement.audio.volume = sound.volume;
+            selectedElement.audio.play();
+        }
         
         // Set up rotation to next file after a random duration (3-8 minutes)
         const rotationTime = (3 + Math.random() * 5) * 60 * 1000; // 3-8 minutes
@@ -606,10 +651,18 @@ export class AmbientSoundsTool {
         
         const sound = this.sounds[soundName];
         if (sound.isPlaying) {
-            // Stop current playing audio element
-            if (sound.audioElements[sound.currentIndex]) {
-                sound.audioElements[sound.currentIndex].audio.pause();
-                sound.audioElements[sound.currentIndex].audio.currentTime = 0;
+            if (sound.currentSource) {
+                // Web Audio API - stop the source
+                sound.currentSource.stop();
+                sound.currentSource = null;
+                sound.currentGainNode = null;
+            } else if (sound.audioElements[sound.currentIndex]) {
+                // HTML5 Audio - pause the element
+                const element = sound.audioElements[sound.currentIndex];
+                if (element.audio) {
+                    element.audio.pause();
+                    element.audio.currentTime = 0;
+                }
             }
             sound.isPlaying = false;
         }
@@ -648,8 +701,14 @@ export class AmbientSoundsTool {
         }
         
         // Apply volume to currently playing audio element
-        if (sound.isPlaying && sound.audioElements[sound.currentIndex]) {
-            sound.audioElements[sound.currentIndex].audio.volume = normalizedVolume;
+        if (sound.isPlaying) {
+            if (sound.currentGainNode) {
+                // Web Audio API - update gain node
+                sound.currentGainNode.gain.setValueAtTime(normalizedVolume, this.audioContext.currentTime);
+            } else if (sound.audioElements[sound.currentIndex] && sound.audioElements[sound.currentIndex].audio) {
+                // HTML5 Audio - update volume
+                sound.audioElements[sound.currentIndex].audio.volume = normalizedVolume;
+            }
         }
         
         if (volume === 0 && sound.isPlaying) {
@@ -708,9 +767,9 @@ export class AmbientSoundsTool {
         const time = Date.now() * 0.001;
         
         for (const [name, sound] of Object.entries(this.sounds)) {
-            if (sound.isPlaying && sound.gainNode.gain.value > 0) {
+            if (sound.isPlaying && sound.volume > 0) {
                 hasActiveSound = true;
-                const volume = sound.gainNode.gain.value * 255;
+                const volume = sound.volume * 255;
                 
                 // Generate visualization data based on playing ambient sounds
                 for (let i = 0; i < combinedData.length; i++) {

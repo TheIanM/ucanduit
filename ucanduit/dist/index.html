@@ -527,30 +527,11 @@
         async function loadTool(toolName, container) {
             if (window.loadedTools[toolName]) {
                 console.log(`Tool ${toolName} already loaded`);
-                return;
-            }
-            
-            // Check if we have persistent audio for this tool
-            if (window.persistentAudio[toolName]) {
-                console.log(`Restoring persistent audio tool: ${toolName}`);
-                const persistentData = window.persistentAudio[toolName];
-                
-                // Restore the tool instance and re-render UI
-                window.loadedTools[toolName] = persistentData.instance;
-                persistentData.instance.container = container;
-                
-                // Re-render the UI
-                if (typeof persistentData.instance.render === 'function') {
-                    persistentData.instance.render();
+                // For audio tools that stay loaded, just update container reference
+                if (isAudioTool(toolName)) {
+                    window.loadedTools[toolName].container = container;
+                    console.log(`Updated container reference for persistent audio tool: ${toolName}`);
                 }
-                if (typeof persistentData.instance.bindEvents === 'function') {
-                    persistentData.instance.bindEvents();
-                }
-                
-                // Clean up persistent storage
-                delete window.persistentAudio[toolName];
-                
-                console.log(`Successfully restored persistent ${toolName} tool with audio intact`);
                 return;
             }
             
@@ -588,30 +569,19 @@
             }
         }
         
-        // Selective unload tool - preserves audio for music/ambient tools
+        // Selective unload tool - audio tools stay fully loaded, others get unloaded
         function selectiveUnloadTool(toolName) {
             if (window.loadedTools[toolName]) {
                 const toolInstance = window.loadedTools[toolName];
                 
-                // Check if this is an audio tool that should persist
+                // Check if this is an audio tool - if so, don't unload anything
                 if (isAudioTool(toolName)) {
-                    console.log(`Preserving audio state for ${toolName}`);
-                    
-                    // Store audio persistence data
-                    window.persistentAudio[toolName] = {
-                        instance: toolInstance,
-                        globalReference: getGlobalAudioReference(toolName)
-                    };
-                    
-                    // Only destroy UI components, keep audio running
-                    if (typeof toolInstance.destroyUI === 'function') {
-                        toolInstance.destroyUI();
-                    } else if (toolInstance.container) {
-                        // Fallback: clear container but preserve tool instance
-                        toolInstance.container.innerHTML = '';
-                    }
+                    console.log(`Audio tool ${toolName} - keeping fully loaded (no unloading)`);
+                    // Do nothing - keep the tool completely loaded with UI and all
+                    return;
                 } else {
                     // Non-audio tools: full unload
+                    console.log(`Non-audio tool ${toolName} - fully unloading`);
                     if (typeof toolInstance.destroy === 'function') {
                         toolInstance.destroy();
                     }
@@ -630,15 +600,6 @@
                 
                 // Remove reference
                 delete window.loadedTools[toolName];
-            }
-            
-            // Also clean up persistent audio if it exists
-            if (window.persistentAudio[toolName]) {
-                const persistentData = window.persistentAudio[toolName];
-                if (persistentData.instance && typeof persistentData.instance.destroy === 'function') {
-                    persistentData.instance.destroy();
-                }
-                delete window.persistentAudio[toolName];
             }
         }
         

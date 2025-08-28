@@ -3,6 +3,8 @@
  * Handles procedural noise generation for focus and concentration
  */
 
+import { AudioToolBase } from './audio-tool-base.js';
+
 // Standalone Noise Generator class
 class NoiseGenerator {
     constructor(audioContext) {
@@ -61,13 +63,11 @@ class NoiseGenerator {
     }
 }
 
-export class FocusNoiseGeneratorTool {
+export class FocusNoiseGeneratorTool extends AudioToolBase {
     constructor(container) {
-        this.container = container;
+        super(container);
         this.audioContext = null;
         this.masterGain = null;
-        this.sounds = {};
-        this.isInitialized = false;
         this.noiseGenerator = null;
         
         // Noise generator configurations
@@ -81,6 +81,7 @@ export class FocusNoiseGeneratorTool {
     }
     
     render() {
+        console.log(`[FocusNoiseGeneratorTool] render() called, container:`, this.container);
         this.container.innerHTML = `
             <div class="noise-controls" style="
                 display: grid;
@@ -101,20 +102,7 @@ export class FocusNoiseGeneratorTool {
                         color: #2a2d34;
                         text-align: center;
                     ">White Noise</div>
-                    <input type="range" class="volume-slider" data-sound="white-noise" min="0" max="100" value="0" 
-                           style="
-                        -webkit-appearance: none;
-                        appearance: none;
-                        width: 100%;
-                        height: 12px;
-                        border-radius: 8px;
-                        background: #F5F5F5;
-                        border: 2px solid #2a2d34;
-                        outline: none;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        --thumb-scale: 1;
-                    ">
+                    <input type="range" class="volume-slider" data-sound="white-noise" min="0" max="100" value="0">
                 </div>
                 <div class="noise-item" style="
                     display: flex;
@@ -128,132 +116,30 @@ export class FocusNoiseGeneratorTool {
                         color: #2a2d34;
                         text-align: center;
                     ">Brown Noise</div>
-                    <input type="range" class="volume-slider" data-sound="brown-noise" min="0" max="100" value="0"
-                           style="
-                        -webkit-appearance: none;
-                        appearance: none;
-                        width: 100%;
-                        height: 12px;
-                        border-radius: 8px;
-                        background: #F5F5F5;
-                        border: 2px solid #2a2d34;
-                        outline: none;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        --thumb-scale: 1;
-                    ">
+                    <input type="range" class="volume-slider" data-sound="brown-noise" min="0" max="100" value="0">
                 </div>
             </div>
             
-            <style>
-                .volume-slider::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 3px solid #2a2d34;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    transform: scale(var(--thumb-scale));
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-
-                .volume-slider::-moz-range-thumb {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 3px solid #2a2d34;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    transform: scale(var(--thumb-scale));
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-                
-                /* Responsive styles */
-                @media (max-height: 250px) {
-                    .noise-controls { 
-                        display: flex !important;
-                        flex-direction: row !important;
-                        gap: 12px !important;
-                        margin: 6px 0 !important;
-                        padding: 0 !important;
-                        flex-wrap: nowrap !important;
-                        overflow-x: auto !important;
-                    }
-                    .noise-item { 
-                        display: flex !important;
-                        flex-direction: column !important;
-                        gap: 4px !important;
-                        min-width: 70px !important;
-                        flex-shrink: 0 !important;
-                    }
-                    .noise-label { 
-                        font-size: 9px !important; 
-                        text-align: center !important;
-                        white-space: nowrap !important;
-                    }
-                    .volume-slider { 
-                        height: 6px !important;
-                        width: 100% !important;
-                    }
-                    .volume-slider::-webkit-slider-thumb {
-                        width: 16px !important;
-                        height: 16px !important;
-                    }
-                    .volume-slider::-moz-range-thumb {
-                        width: 16px !important;
-                        height: 16px !important;
-                    }
-                }
-
-                @media (max-width: 250px) {
-                    .noise-controls { 
-                        grid-template-columns: 1fr !important; 
-                        gap: 6px !important;
-                    }
-                    .noise-label { font-size: 10px !important; }
-                    .volume-slider { height: 4px !important; }
-                }
-            </style>
+            ${this.getSliderStyles()}
         `;
     }
     
     bindEvents() {
-        const sliders = this.container.querySelectorAll('.volume-slider');
-        sliders.forEach(slider => {
-            slider.addEventListener('input', (e) => {
-                const soundName = e.target.getAttribute('data-sound');
-                const volume = parseInt(e.target.value);
-                this.updateNoiseVolume(soundName, volume);
-            });
-        });
-        
-        // Restore slider states if audio is currently playing
-        this.restoreSliderStates();
+        console.log(`[FocusNoiseGeneratorTool] bindEvents() called`);
+        this.bindSliderEvents();
     }
     
-    // Restore slider values based on current audio state
-    restoreSliderStates() {
-        for (const [soundName, sound] of Object.entries(this.sounds)) {
-            if (sound && sound.gainNode) {
-                // Calculate volume percentage from gain value
-                const volumePercent = Math.round((sound.gainNode.gain.value / sound.config.baseGain) * 100);
-                
-                const slider = this.container.querySelector(`[data-sound="${soundName}"]`);
-                if (slider && volumePercent > 0) {
-                    slider.value = volumePercent;
-                    
-                    // Also restore visual scale
-                    const scale = 1 + (volumePercent / 100) * 0.5;
-                    slider.style.setProperty('--thumb-scale', scale);
-                    
-                    console.log(`Restored ${soundName} slider to ${volumePercent}%`);
-                }
-            }
+    // Implement base class method for getting volume percentage
+    getSoundVolumeForSlider(sound) {
+        if (sound && sound.gainNode) {
+            return Math.round((sound.gainNode.gain.value / sound.config.baseGain) * 100);
         }
+        return 0;
+    }
+    
+    // Implement base class method for updating volume 
+    updateVolumeMethod(soundName, volume) {
+        this.updateNoiseVolume(soundName, volume);
     }
     
     async initialize() {
@@ -387,12 +273,7 @@ export class FocusNoiseGeneratorTool {
             await this.initialize();
         }
         this.setVolume(soundName, volume);
-        
-        const slider = this.container.querySelector(`[data-sound="${soundName}"]`);
-        if (slider) {
-            const scale = 1 + (volume / 100) * 0.5;
-            slider.style.setProperty('--thumb-scale', scale);
-        }
+        this.updateSliderScale(soundName, volume);
     }
     
     // Get combined audio data for oscilloscope visualization
@@ -427,37 +308,10 @@ export class FocusNoiseGeneratorTool {
         return hasActiveSound ? combinedData : null;
     }
     
-    // Cleanup UI only (for selective unloading)
-    destroyUI() {
-        // Clear DOM but preserve audio state
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-        console.log('Focus noise generator UI destroyed, audio preserved');
-    }
-    
-    // Full cleanup method for when tool is completely unloaded
-    destroy() {
-        // Stop all sounds
-        Object.keys(this.sounds).forEach(soundName => {
-            this.stopSound(soundName);
-        });
-        
-        // Close audio context if we created it
-        if (this.audioContext && this.audioContext.state !== 'closed') {
-            this.audioContext.close();
-        }
-        
-        // Clear DOM
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-        
-        // Remove from parent reference
+    // Override base class method to remove specific global reference
+    removeGlobalReference() {
         if (window.childFocusNoise === this) {
             window.childFocusNoise = null;
         }
-        
-        console.log('Focus noise generator fully destroyed');
     }
 }

@@ -3,13 +3,13 @@
  * Handles real ambient sound loops for relaxation and atmosphere
  */
 
-export class AmbientSoundsTool {
+import { AudioToolBase } from './audio-tool-base.js';
+
+export class AmbientSoundsTool extends AudioToolBase {
     constructor(container) {
-        this.container = container;
+        super(container);
         this.audioContext = null;
         this.masterGain = null;
-        this.sounds = {};
-        this.isInitialized = false;
         this.directoryCache = new Map(); // Cache discovered files
         
         // Audio loop configurations - will be dynamically populated by scanning directories
@@ -190,6 +190,7 @@ export class AmbientSoundsTool {
     }
     
     render() {
+        console.log(`[AmbientSoundsTool] render() called, container:`, this.container);
         // Check if we have any sound configurations discovered yet
         const hasConfigs = Object.keys(this.soundConfigs).length > 0;
         
@@ -208,20 +209,7 @@ export class AmbientSoundsTool {
                         color: #2a2d34;
                         text-align: center;
                     ">${config.displayName}</div>
-                    <input type="range" class="volume-slider" data-sound="${key}" min="0" max="100" value="0" 
-                           style="
-                        -webkit-appearance: none;
-                        appearance: none;
-                        width: 100%;
-                        height: 12px;
-                        border-radius: 8px;
-                        background: #F5F5F5;
-                        border: 2px solid #2a2d34;
-                        outline: none;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                        --thumb-scale: 1;
-                    ">
+                    <input type="range" class="volume-slider" data-sound="${key}" min="0" max="100" value="0">
                 </div>
             `).join('');
         } else {
@@ -264,116 +252,26 @@ export class AmbientSoundsTool {
                 Loading audio files...
             </div>
             
-            
-            <style>
-                .volume-slider::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 3px solid #2a2d34;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    transform: scale(var(--thumb-scale));
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-
-                .volume-slider::-moz-range-thumb {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 3px solid #2a2d34;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    transform: scale(var(--thumb-scale));
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                }
-                
-                /* Responsive styles */
-                @media (max-height: 250px) {
-                    .sound-controls { 
-                        display: flex !important;
-                        flex-direction: row !important;
-                        gap: 12px !important;
-                        margin: 6px 0 !important;
-                        padding: 0 !important;
-                        flex-wrap: nowrap !important;
-                        overflow-x: auto !important;
-                    }
-                    .sound-item { 
-                        display: flex !important;
-                        flex-direction: column !important;
-                        gap: 4px !important;
-                        min-width: 70px !important;
-                        flex-shrink: 0 !important;
-                    }
-                    .sound-label { 
-                        font-size: 9px !important; 
-                        text-align: center !important;
-                        white-space: nowrap !important;
-                    }
-                    .volume-slider { 
-                        height: 6px !important;
-                        width: 100% !important;
-                    }
-                    .volume-slider::-webkit-slider-thumb {
-                        width: 16px !important;
-                        height: 16px !important;
-                    }
-                    .volume-slider::-moz-range-thumb {
-                        width: 16px !important;
-                        height: 16px !important;
-                    }
-                }
-
-                @media (max-width: 250px) {
-                    .sound-controls { 
-                        grid-template-columns: 1fr !important; 
-                        gap: 6px !important;
-                    }
-                    .sound-label { font-size: 10px !important; }
-                    .volume-slider { height: 4px !important; }
-                }
-            </style>
+            ${this.getSliderStyles()}
         `;
     }
     
     bindEvents() {
-        const sliders = this.container.querySelectorAll('.volume-slider');
-        sliders.forEach(slider => {
-            slider.addEventListener('input', (e) => {
-                const soundName = e.target.getAttribute('data-sound');
-                const volume = parseInt(e.target.value);
-                this.updateSoundVolume(soundName, volume);
-            });
-        });
-        
-        // Restore slider states if audio is currently playing
-        this.restoreSliderStates();
+        console.log(`[AmbientSoundsTool] bindEvents() called`);
+        this.bindSliderEvents();
     }
     
-    // Restore slider values based on current audio state
-    restoreSliderStates() {
-        for (const [soundName, sound] of Object.entries(this.sounds)) {
-            if (sound && sound.volume > 0) {
-                // Calculate volume percentage from stored volume
-                const volumePercent = Math.round((sound.volume / sound.config.baseGain) * 100);
-                
-                const slider = this.container.querySelector(`[data-sound="${soundName}"]`);
-                if (slider && volumePercent > 0) {
-                    slider.value = volumePercent;
-                    
-                    // Also restore visual scale
-                    const scale = 1 + (volumePercent / 100) * 0.5;
-                    slider.style.setProperty('--thumb-scale', scale);
-                    
-                    console.log(`Restored ${soundName} slider to ${volumePercent}%`);
-                }
-            }
+    // Implement base class method for getting volume percentage
+    getSoundVolumeForSlider(sound) {
+        if (sound && sound.volume > 0) {
+            return Math.round((sound.volume / sound.config.baseGain) * 100);
         }
+        return 0;
+    }
+    
+    // Implement base class method for updating volume 
+    updateVolumeMethod(soundName, volume) {
+        this.updateSoundVolume(soundName, volume);
     }
     
     async initialize() {
@@ -445,7 +343,9 @@ export class AmbientSoundsTool {
             config: config,
             loaded: false,
             volume: 0,
-            rotationTimeout: null
+            rotationTimeout: null,
+            loadingInBackground: false,
+            backgroundBatchSize: 3  // Load 3 files per batch
         };
         
         try {
@@ -459,96 +359,160 @@ export class AmbientSoundsTool {
                 // Use MP3 files if available, otherwise use OGG
                 const filesToUse = mp3Files.length > 0 ? mp3Files : oggFiles;
                 
-                const loadPromises = filesToUse.map(async (file) => {
-                    // Try Web Audio API first, fallback to HTML5 Audio
-                    console.log(`Trying Web Audio API for: ${file}`);
-                    
-                    try {
-                        // Web Audio API approach
-                        const { convertFileSrc } = window.__TAURI__.core;
-                        const assetUrl = convertFileSrc(file);
-                        
-                        const response = await fetch(assetUrl);
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        
-                        const arrayBuffer = await response.arrayBuffer();
-                        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-                        
-                        console.log(`✅ Web Audio API success: ${file}`);
-                        return { file, audioBuffer, useWebAudio: true };
-                        
-                    } catch (webAudioError) {
-                        console.warn(`❌ Web Audio API failed for ${file}: ${webAudioError.message}`);
-                        console.log(`🔄 Falling back to HTML5 Audio for: ${file}`);
-                        
-                        try {
-                            // HTML5 Audio fallback
-                            const audio = new Audio();
-                            audio.crossOrigin = 'anonymous';
-                            audio.preload = 'none';
-                            audio.loop = true;
-                            audio.volume = 0;
-                            
-                            const { convertFileSrc } = window.__TAURI__.core;
-                            const assetUrl = convertFileSrc(file);
-                            
-                            // Set type based on file extension
-                            const ext = file.toLowerCase().split('.').pop();
-                            if (ext === 'mp3') audio.type = 'audio/mpeg';
-                            else if (ext === 'ogg') audio.type = 'audio/ogg';
-                            else if (ext === 'm4a') audio.type = 'audio/mp4';
-                            
-                            audio.src = assetUrl;
-                            audio.load();
-                            
-                            await new Promise((resolve, reject) => {
-                                audio.addEventListener('canplaythrough', resolve);
-                                audio.addEventListener('error', (e) => {
-                                    const error = audio.error;
-                                    let errorMessage = 'Unknown audio error';
-                                    if (error) {
-                                        switch(error.code) {
-                                            case error.MEDIA_ERR_ABORTED:
-                                                errorMessage = 'Audio loading aborted';
-                                                break;
-                                            case error.MEDIA_ERR_NETWORK:
-                                                errorMessage = 'Network error while loading audio';
-                                                break;
-                                            case error.MEDIA_ERR_DECODE:
-                                                errorMessage = 'Audio decoding error';
-                                                break;
-                                            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                                                errorMessage = 'Audio format not supported';
-                                                break;
-                                        }
-                                    }
-                                    reject(new Error(`${errorMessage} (code: ${error?.code})`));
-                                });
-                                
-                                setTimeout(() => reject(new Error('Audio load timeout')), 10000);
-                            });
-                            
-                            console.log(`✅ HTML5 Audio fallback success: ${file}`);
-                            return { file, audio, useWebAudio: false };
-                            
-                        } catch (html5Error) {
-                            console.error(`❌ Both Web Audio API and HTML5 Audio failed for ${file}:`, html5Error.message);
-                            return null;
-                        }
-                    }
-                });
+                console.log(`[AmbientSoundsTool] Found ${filesToUse.length} files for ${config.displayName}, loading first file only`);
                 
-                const results = await Promise.all(loadPromises);
-                sound.audioElements = results.filter(result => result !== null);
-                sound.loaded = sound.audioElements.length > 0;
+                // Load only the FIRST file immediately for instant playback
+                if (filesToUse.length > 0) {
+                    const firstFile = filesToUse[0];
+                    const firstElement = await this.loadSingleAudioFile(firstFile);
+                    
+                    if (firstElement) {
+                        sound.audioElements = [firstElement];
+                        sound.loaded = true;
+                        console.log(`✅ ${config.displayName}: First file loaded, ready to play instantly!`);
+                        
+                        // Start background loading of remaining files
+                        if (filesToUse.length > 1) {
+                            this.startBackgroundLoading(sound, filesToUse.slice(1));
+                        }
+                    } else {
+                        console.warn(`❌ Failed to load first file for ${config.displayName}`);
+                    }
+                }
             }
         } catch (error) {
             console.warn(`Failed to load sounds for ${config.displayName}:`, error);
         }
         
         return sound;
+    }
+    
+    // Load a single audio file (used for first file and background batching)
+    async loadSingleAudioFile(file) {
+        try {
+            console.log(`Loading single file: ${file}`);
+            
+            // Try Web Audio API first, fallback to HTML5 Audio
+            try {
+                // Web Audio API approach
+                const { convertFileSrc } = window.__TAURI__.core;
+                const assetUrl = convertFileSrc(file);
+                
+                const response = await fetch(assetUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                
+                console.log(`✅ Web Audio API success: ${file}`);
+                return { file, audioBuffer, useWebAudio: true };
+                
+            } catch (webAudioError) {
+                console.warn(`❌ Web Audio API failed for ${file}: ${webAudioError.message}`);
+                
+                try {
+                    // HTML5 Audio fallback
+                    const audio = new Audio();
+                    audio.crossOrigin = 'anonymous';
+                    audio.preload = 'none';
+                    audio.loop = true;
+                    audio.volume = 0;
+                    
+                    const { convertFileSrc } = window.__TAURI__.core;
+                    const assetUrl = convertFileSrc(file);
+                    
+                    // Set type based on file extension
+                    const ext = file.toLowerCase().split('.').pop();
+                    if (ext === 'mp3') audio.type = 'audio/mpeg';
+                    else if (ext === 'ogg') audio.type = 'audio/ogg';
+                    else if (ext === 'm4a') audio.type = 'audio/mp4';
+                    
+                    audio.src = assetUrl;
+                    audio.load();
+                    
+                    await new Promise((resolve, reject) => {
+                        audio.addEventListener('canplaythrough', resolve);
+                        audio.addEventListener('error', (e) => {
+                            const error = audio.error;
+                            let errorMessage = 'Unknown audio error';
+                            if (error) {
+                                switch(error.code) {
+                                    case error.MEDIA_ERR_ABORTED:
+                                        errorMessage = 'Audio loading aborted';
+                                        break;
+                                    case error.MEDIA_ERR_NETWORK:
+                                        errorMessage = 'Network error while loading audio';
+                                        break;
+                                    case error.MEDIA_ERR_DECODE:
+                                        errorMessage = 'Audio decoding error';
+                                        break;
+                                    case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                                        errorMessage = 'Audio format not supported';
+                                        break;
+                                }
+                            }
+                            reject(new Error(`${errorMessage} (code: ${error?.code})`));
+                        });
+                        
+                        setTimeout(() => reject(new Error('Audio load timeout')), 10000);
+                    });
+                    
+                    console.log(`✅ HTML5 Audio fallback success: ${file}`);
+                    return { file, audio, useWebAudio: false };
+                    
+                } catch (html5Error) {
+                    console.error(`❌ Both Web Audio API and HTML5 Audio failed for ${file}:`, html5Error.message);
+                    return null;
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to load file ${file}:`, error);
+            return null;
+        }
+    }
+    
+    // Start background loading of remaining files in batches
+    startBackgroundLoading(sound, remainingFiles) {
+        if (sound.loadingInBackground || remainingFiles.length === 0) {
+            return;
+        }
+        
+        sound.loadingInBackground = true;
+        console.log(`🔄 Starting background loading for ${sound.config.displayName}: ${remainingFiles.length} files remaining`);
+        
+        // Load files in batches to avoid overwhelming the system
+        this.loadNextBatch(sound, remainingFiles, 0);
+    }
+    
+    // Load files in small batches with delays between batches
+    async loadNextBatch(sound, remainingFiles, startIndex) {
+        const batchSize = sound.backgroundBatchSize;
+        const endIndex = Math.min(startIndex + batchSize, remainingFiles.length);
+        const currentBatch = remainingFiles.slice(startIndex, endIndex);
+        
+        console.log(`📦 Loading batch ${Math.floor(startIndex/batchSize) + 1}: files ${startIndex + 1}-${endIndex} of ${remainingFiles.length}`);
+        
+        // Load batch in parallel
+        const batchPromises = currentBatch.map(file => this.loadSingleAudioFile(file));
+        const results = await Promise.all(batchPromises);
+        
+        // Add successfully loaded files to the sound
+        const loadedElements = results.filter(result => result !== null);
+        sound.audioElements.push(...loadedElements);
+        
+        console.log(`✅ Batch loaded: ${loadedElements.length}/${currentBatch.length} files. Total: ${sound.audioElements.length} files available`);
+        
+        // If there are more files, schedule the next batch with a small delay
+        if (endIndex < remainingFiles.length) {
+            setTimeout(() => {
+                this.loadNextBatch(sound, remainingFiles, endIndex);
+            }, 500); // 500ms delay between batches
+        } else {
+            sound.loadingInBackground = false;
+            console.log(`🎉 Background loading complete for ${sound.config.displayName}: ${sound.audioElements.length} total files loaded`);
+        }
     }
     
     startSound(soundName) {
@@ -745,12 +709,7 @@ export class AmbientSoundsTool {
             await this.initialize();
         }
         await this.setVolume(soundName, volume);
-        
-        const slider = this.container.querySelector(`[data-sound="${soundName}"]`);
-        if (slider) {
-            const scale = 1 + (volume / 100) * 0.5;
-            slider.style.setProperty('--thumb-scale', scale);
-        }
+        this.updateSliderScale(soundName, volume);
     }
     
     // Initialize just the audio context (separate from full initialization)
@@ -809,37 +768,10 @@ export class AmbientSoundsTool {
         return hasActiveSound ? combinedData : null;
     }
     
-    // Cleanup UI only (for selective unloading)
-    destroyUI() {
-        // Clear DOM but preserve audio state
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-        console.log('Ambient sounds UI destroyed, audio preserved');
-    }
-    
-    // Full cleanup method for when tool is completely unloaded
-    destroy() {
-        // Stop all sounds and clear timeouts
-        Object.keys(this.sounds).forEach(soundName => {
-            this.stopSound(soundName);
-        });
-        
-        // Close audio context if we created it
-        if (this.audioContext && this.audioContext.state !== 'closed') {
-            this.audioContext.close();
-        }
-        
-        // Clear DOM
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-        
-        // Remove from parent reference
+    // Override base class method to remove specific global reference
+    removeGlobalReference() {
         if (window.childAmbientNoise === this) {
             window.childAmbientNoise = null;
         }
-        
-        console.log('Ambient sounds fully destroyed');
     }
 }

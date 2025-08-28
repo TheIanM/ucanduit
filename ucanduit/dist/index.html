@@ -173,7 +173,15 @@
                     await import('https://cdn.skypack.dev/@tauri-apps/api/window');
                 
                 const monitors = await availableMonitors();
-                console.log('Available monitors:', monitors);
+                console.log('Available monitors count:', monitors.length);
+                monitors.forEach((monitor, index) => {
+                    console.log(`Monitor ${index}:`, {
+                        name: monitor.name,
+                        size: monitor.size,
+                        position: monitor.position,
+                        scaleFactor: monitor.scaleFactor
+                    });
+                });
                 
                 let currentMonitor = null;
                 for (const monitor of monitors) {
@@ -196,10 +204,19 @@
                 
                 if (currentMonitor) {
                     console.log('Using monitor:', currentMonitor);
+                    const scaleFactor = currentMonitor.scaleFactor || 1;
+                    const logicalWidth = currentMonitor.size.width / scaleFactor;
+                    const logicalHeight = currentMonitor.size.height / scaleFactor;
+                    
+                    console.log('Scale factor conversion:');
+                    console.log('- Physical size:', currentMonitor.size.width, 'x', currentMonitor.size.height);
+                    console.log('- Scale factor:', scaleFactor);
+                    console.log('- Logical size:', logicalWidth, 'x', logicalHeight);
+                    
                     return {
-                        width: currentMonitor.size.width,
-                        height: currentMonitor.size.height,
-                        scaleFactor: currentMonitor.scaleFactor || 1,
+                        width: logicalWidth,
+                        height: logicalHeight,
+                        scaleFactor: scaleFactor,
                         position: currentMonitor.position
                     };
                 }
@@ -244,11 +261,24 @@
             verticalConfig.width = Math.min(verticalConfig.width, screenWidth - 20);
             verticalConfig.height = Math.min(verticalConfig.height, screenHeight - 100);
             
-            console.log('Calculated window sizes for screen', screenWidth + 'x' + screenHeight + ':');
-            console.log('Monitor position offset:', monitorPosition);
-            console.log('Usable area:', usableWidth + 'x' + usableHeight);
-            console.log('Horizontal:', horizontalConfig);
-            console.log('Vertical:', verticalConfig);
+            console.log('=== WINDOW SIZE CALCULATION DEBUG ===');
+            console.log('Input values:');
+            console.log('- screenWidth:', screenWidth);
+            console.log('- screenHeight:', screenHeight);
+            console.log('- monitorPosition:', monitorPosition);
+            console.log('Margin calculations:');
+            console.log('- topMargin:', topMargin, 'bottomMargin:', bottomMargin);
+            console.log('- leftMargin:', leftMargin, 'rightMargin:', rightMargin);
+            console.log('- usableWidth:', usableWidth, '(', screenWidth, '-', leftMargin, '-', rightMargin, ')');
+            console.log('- usableHeight:', usableHeight, '(', screenHeight, '-', topMargin, '-', bottomMargin, ')');
+            console.log('Initial configs:');
+            console.log('- horizontalConfig.width (initial):', horizontalConfig.width);
+            console.log('- horizontalConfig after min constraint:', Math.max(horizontalConfig.width, 400));
+            console.log('- horizontalConfig after max constraint:', Math.min(Math.max(horizontalConfig.width, 400), screenWidth - 20));
+            console.log('Final configs:');
+            console.log('- Horizontal:', horizontalConfig);
+            console.log('- Vertical:', verticalConfig);
+            console.log('=== END WINDOW SIZE CALCULATION DEBUG ===');
             
             return { horizontal: horizontalConfig, vertical: verticalConfig };
         }
@@ -307,31 +337,49 @@
         
         // Window resize functions
         window.resizeHorizontal = async function() {
+            console.log('=== HORIZONTAL MODE DEBUG ===');
             console.log('resizeHorizontal called, isReady:', isReady);
             if (!isReady || !window.tauriWindow || !window.tauriLogicalSize) {
                 alert('Window APIs not ready yet');
                 return;
             }
             try {
+                console.log('Getting current screen info for horizontal mode...');
                 const currentScreenInfo = await getScreenInfo();
+                console.log('Screen info retrieved:', currentScreenInfo);
+                
+                console.log('Calculating window sizes...');
                 const currentConfigs = calculateWindowSizes(currentScreenInfo.width, currentScreenInfo.height, currentScreenInfo.position);
                 const config = currentConfigs.horizontal;
                 
-                console.log('Using horizontal config for current monitor:', config);
+                console.log('HORIZONTAL CONFIG DETAILS:');
+                console.log('- Screen width:', currentScreenInfo.width);
+                console.log('- Screen height:', currentScreenInfo.height);
+                console.log('- Monitor position:', currentScreenInfo.position);
+                console.log('- Calculated width:', config.width);
+                console.log('- Calculated height:', config.height);
+                console.log('- Target position:', config.x, config.y);
+                console.log('- Full config object:', config);
                 
                 const newSize = new window.tauriLogicalSize(config.width, config.height);
+                console.log('Created LogicalSize:', newSize);
                 await window.tauriWindow.setSize(newSize);
+                console.log('Size set successfully');
                 
                 const { LogicalPosition } = window.__TAURI__ ? window.__TAURI__.window : 
                     await import('https://cdn.skypack.dev/@tauri-apps/api/window');
                 
                 const newPosition = new LogicalPosition(config.x, config.y);
+                console.log('Created LogicalPosition:', newPosition);
                 await window.tauriWindow.setPosition(newPosition);
+                console.log('Position set successfully');
                 
-                console.log(`Resized to horizontal mode: ${config.width}x${config.height} at position ${config.x},${config.y}`);
+                console.log(`✅ Resized to horizontal mode: ${config.width}x${config.height} at position ${config.x},${config.y}`);
+                console.log('=== END HORIZONTAL MODE DEBUG ===');
                 document.getElementById('status-badge').textContent = `Horizontal Mode - ${config.width}x${config.height}`;
             } catch (error) {
-                console.error('Error resizing horizontally:', error);
+                console.error('❌ Error resizing horizontally:', error);
+                console.error('Error stack:', error.stack);
                 alert('Error: ' + error.message);
             }
         };

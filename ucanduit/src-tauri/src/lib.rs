@@ -104,7 +104,7 @@ async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContent
                                 
                                 audio_files.push(AudioFile {
                                     name: name_str.to_string(),
-                                    path: format!("{}/{}", directory_path, name_str),
+                                    path: file_path.to_string_lossy().to_string(), // Use absolute path
                                     size,
                                     extension: ext_lower,
                                 });

@@ -423,12 +423,17 @@ export class AmbientSoundsTool {
                     try {
                         console.log(`Loading HTML5 audio: ${file}`);
                         
-                        const audio = new Audio(file);
+                        const audio = new Audio();
                         audio.crossOrigin = 'anonymous';
                         audio.preload = 'none';
                         audio.loop = true;
                         audio.volume = 0; // Start muted
-                        audio.src = file;
+                        
+                        // Convert file path to Tauri asset URL
+                        const { convertFileSrc } = window.__TAURI__.core;
+                        const assetUrl = convertFileSrc(file);
+                        console.log(`Converted ${file} to ${assetUrl}`);
+                        audio.src = assetUrl;
                         
                         // Wait for the audio to be ready
                         await new Promise((resolve, reject) => {

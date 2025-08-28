@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **ucanduit**, a lightweight gamified productivity suite built with Tauri (Rust + Web Technologies). The application is designed for 24/7 operation as an always-on-top productivity assistant featuring a circular oscilloscope visual that responds to audio.
 
+## Your Behaviour
+You will ensure code is clean, clear, and functional.
+You will not rush, slow down and avoid silly mistakes. 
+DO NOT GUESS, if you don't know something be honest and ask for further instructions
+
 ## Architecture
 
 - **Framework**: Tauri (Rust backend + HTML/CSS/JS frontend)

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Memos - ucanduit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tools/tool-base.css">
+    <link rel="stylesheet" href="tools/memos.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #F5F5F5;
+            --text-primary: #2a2d34;
+            --translucent-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .memo-window-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 15px;
+            gap: 10px;
+        }
+
+        .memo-window-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: var(--translucent-bg);
+            border-radius: 12px;
+            border-bottom: 2px solid rgba(42, 45, 52, 0.1);
+            flex-shrink: 0;
+        }
+
+        .memo-window-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .memo-window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .memo-window-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--translucent-bg);
+            border-radius: 12px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .memo-editor {
+            flex: 1;
+            border: none;
+            background: transparent;
+            resize: none;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .memo-editor:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .memo-toolbar {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(42, 45, 52, 0.1);
+        }
+
+        .memo-status {
+            padding-top: 10px;
+            border-top: 2px solid rgba(42, 45, 52, 0.1);
+            flex-shrink: 0;
+        }
+
+        /* Window-specific responsive styles */
+        @media (max-width: 400px) {
+            .memo-window-container {
+                padding: 10px;
+            }
+            
+            .memo-window-content {
+                padding: 15px;
+            }
+            
+            .memo-editor {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-height: 300px) {
+            .memo-window-header {
+                padding: 5px 10px;
+            }
+            
+            .memo-window-title {
+                font-size: 14px;
+            }
+            
+            .memo-toolbar {
+                margin-bottom: 10px;
+                padding-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="memo-window-container">
+        <div class="memo-window-header">
+            <h1 class="memo-window-title">📝 Quick Memos</h1>
+            <div class="memo-window-controls">
+                <button class="tool-btn secondary" id="minimize-btn" title="Minimize">−</button>
+                <button class="tool-btn danger" id="close-btn" title="Close">✕</button>
+            </div>
+        </div>
+
+        <div class="memo-window-content">
+            <div class="memo-toolbar">
+                <button class="memo-format-btn" data-format="bold" title="Bold (Ctrl+B)">
+                    <strong>B</strong>
+                </button>
+                <button class="memo-format-btn" data-format="italic" title="Italic (Ctrl+I)">
+                    <em>I</em>
+                </button>
+                <button class="memo-format-btn" data-format="clear" title="Clear Formatting">
+                    Clear
+                </button>
+                <button class="tool-btn danger" id="clear-memo-btn" title="Clear All Content">
+                    🗑️ Clear All
+                </button>
+            </div>
+            
+            <textarea 
+                class="memo-editor" 
+                id="memo-editor"
+                placeholder="Start typing your notes here...
+
+Keyboard shortcuts:
+• Ctrl+B for **bold**
+• Ctrl+I for *italic* 
+• Type URLs and they'll become clickable links
+• Everything auto-saves as you type
+
+This dedicated memo window gives you plenty of space to write!"
+                spellcheck="true"
+            ></textarea>
+            
+            <div class="memo-status" id="memo-status">
+                Ready
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import and use the memos tool logic
+        import { MemosTool } from './tools/memos.js';
+
+        let memoTool;
+        let currentWindow;
+
+        async function initializeMemoWindow() {
+            try {
+                // Wait for Tauri APIs
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                while (attempts < maxAttempts) {
+                    if (window.__TAURI__ && window.__TAURI__.window) {
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts) {
+                    console.warn('Tauri API not available, running in browser mode');
+                }
+
+                // Get current window reference
+                if (window.__TAURI__) {
+                    const { getCurrentWindow } = window.__TAURI__.window;
+                    currentWindow = getCurrentWindow();
+                    window.tauriWindow = currentWindow;
+                }
+
+                // Create a container for the memo tool
+                const container = document.createElement('div');
+                
+                // Create memo tool instance with custom container
+                memoTool = new MemoToolWindow(container);
+                
+                // Bind window controls
+                bindWindowControls();
+
+            } catch (error) {
+                console.error('Error initializing memo window:', error);
+                document.getElementById('memo-status').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Custom memo tool class for the dedicated window
+        class MemoToolWindow {
+            constructor(container) {
+                this.container = container;
+                this.memoContent = '';
+                this.autoSaveTimeout = null;
+                this.autoSaveDelay = 1000;
+                this.detectedUrls = [];
+                
+                // Get DOM elements
+                this.editor = document.getElementById('memo-editor');
+                this.statusEl = document.getElementById('memo-status');
+                
+                this.init();
+            }
+            
+            async init() {
+                // Load saved content
+                this.loadSavedContent();
+                
+                // Bind events
+                this.bindEvents();
+                
+                // Focus editor
+                setTimeout(() => {
+                    this.editor.focus();
+                }, 100);
+                
+                this.updateMemoStatus('Loaded ' + this.formatContentLength());
+            }
+            
+            loadSavedContent() {
+                try {
+                    const saved = localStorage.getItem('ucanduit_memostool_memoContent');
+                    this.memoContent = saved ? JSON.parse(saved) : '';
+                    this.editor.value = this.memoContent;
+                } catch (error) {
+                    console.error('Error loading saved content:', error);
+                    this.memoContent = '';
+                }
+            }
+            
+            bindEvents() {
+                const formatBtns = document.querySelectorAll('.memo-format-btn[data-format]');
+                const clearBtn = document.getElementById('clear-memo-btn');
+                
+                // Auto-save on content change
+                this.editor.addEventListener('input', () => {
+                    this.scheduleAutoSave();
+                    this.processLinks();
+                });
+                
+                // Handle clicks for link detection  
+                this.editor.addEventListener('click', (e) => {
+                    this.handleLinkClick(e);
+                });
+                
+                // Show link preview on hover/mouse move
+                this.editor.addEventListener('mousemove', (e) => {
+                    this.handleLinkHover(e);
+                });
+                
+                // Keyboard shortcuts
+                this.editor.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch (e.key.toLowerCase()) {
+                            case 'b':
+                                e.preventDefault();
+                                this.toggleFormat('bold');
+                                break;
+                            case 'i':
+                                e.preventDefault();
+                                this.toggleFormat('italic');
+                                break;
+                        }
+                    }
+                });
+                
+                // Format buttons
+                formatBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const format = btn.getAttribute('data-format');
+                        if (format === 'clear') {
+                            this.clearFormatting();
+                        } else {
+                            this.toggleFormat(format);
+                        }
+                    });
+                });
+                
+                // Clear all button
+                clearBtn?.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to clear all memo content? This cannot be undone.')) {
+                        this.clearAllContent();
+                    }
+                });
+                
+                // Process existing links
+                this.processLinks();
+            }
+            
+            scheduleAutoSave() {
+                if (this.autoSaveTimeout) {
+                    clearTimeout(this.autoSaveTimeout);
+                }
+                
+                this.autoSaveTimeout = setTimeout(() => {
+                    this.autoSave();
+                }, this.autoSaveDelay);
+                
+                this.updateMemoStatus('Typing...');
+            }
+            
+            autoSave() {
+                const content = this.editor.value;
+                this.memoContent = content;
+                
+                try {
+                    localStorage.setItem('ucanduit_memostool_memoContent', JSON.stringify(content));
+                    this.updateMemoStatus('Saved ' + this.formatContentLength());
+                } catch (error) {
+                    console.error('Save failed:', error);
+                    this.updateMemoStatus('Save failed!');
+                }
+            }
+            
+            formatContentLength() {
+                const wordCount = this.memoContent.trim().split(/\s+/).filter(w => w.length > 0).length;
+                const charCount = this.memoContent.length;
+                
+                if (charCount === 0) return '(empty)';
+                return `(${wordCount} words, ${charCount} chars)`;
+            }
+            
+            updateMemoStatus(message) {
+                if (this.statusEl) {
+                    this.statusEl.textContent = message;
+                }
+            }
+            
+            toggleFormat(formatType) {
+                const start = this.editor.selectionStart;
+                const end = this.editor.selectionEnd;
+                const selectedText = this.editor.value.substring(start, end);
+                
+                if (selectedText.length === 0) {
+                    this.updateMemoStatus(`Select text first to apply ${formatType} formatting`);
+                    return;
+                }
+                
+                let markers;
+                
+                switch (formatType) {
+                    case 'bold':
+                        markers = '**';
+                        break;
+                    case 'italic':
+                        markers = '*';
+                        break;
+                    default:
+                        return;
+                }
+                
+                // Check if text is already formatted
+                const beforeText = this.editor.value.substring(start - markers.length, start);
+                const afterText = this.editor.value.substring(end, end + markers.length);
+                
+                let formattedText;
+                
+                if (beforeText === markers && afterText === markers) {
+                    // Remove formatting
+                    formattedText = selectedText;
+                    this.editor.value = this.editor.value.substring(0, start - markers.length) + 
+                                      formattedText + 
+                                      this.editor.value.substring(end + markers.length);
+                    this.editor.setSelectionRange(start - markers.length, start - markers.length + formattedText.length);
+                } else {
+                    // Add formatting
+                    formattedText = markers + selectedText + markers;
+                    this.editor.value = this.editor.value.substring(0, start) + 
+                                      formattedText + 
+                                      this.editor.value.substring(end);
+                    this.editor.setSelectionRange(start, start + formattedText.length);
+                }
+                
+                this.editor.focus();
+                this.scheduleAutoSave();
+                this.processLinks();
+                this.updateMemoStatus(`Applied ${formatType} formatting`);
+            }
+            
+            clearFormatting() {
+                const start = this.editor.selectionStart;
+                const end = this.editor.selectionEnd;
+                const selectedText = this.editor.value.substring(start, end);
+                
+                if (selectedText.length === 0) {
+                    this.updateMemoStatus('Select text first to clear formatting');
+                    return;
+                }
+                
+                const cleanText = selectedText
+                    .replace(/\*\*(.*?)\*\*/g, '$1')
+                    .replace(/\*(.*?)\*/g, '$1');
+                
+                this.editor.value = this.editor.value.substring(0, start) + 
+                                  cleanText + 
+                                  this.editor.value.substring(end);
+                                  
+                this.editor.setSelectionRange(start, start + cleanText.length);
+                this.editor.focus();
+                
+                this.scheduleAutoSave();
+                this.processLinks();
+                this.updateMemoStatus('Formatting cleared');
+            }
+            
+            clearAllContent() {
+                this.editor.value = '';
+                this.memoContent = '';
+                localStorage.setItem('ucanduit_memostool_memoContent', JSON.stringify(''));
+                this.updateMemoStatus('Content cleared');
+                this.editor.focus();
+            }
+            
+            processLinks() {
+                const content = this.editor.value;
+                const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?|\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b)/g;
+                const matches = [];
+                let match;
+                
+                while ((match = urlRegex.exec(content)) !== null) {
+                    matches.push({
+                        url: match[0],
+                        start: match.index,
+                        end: match.index + match[0].length,
+                        isEmail: match[0].includes('@') && !match[0].startsWith('http')
+                    });
+                }
+                
+                this.detectedUrls = matches;
+            }
+            
+            handleLinkClick(event) {
+                if (!this.detectedUrls || this.detectedUrls.length === 0) return;
+                
+                const cursorPosition = this.editor.selectionStart;
+                
+                const clickedUrl = this.detectedUrls.find(urlMatch => 
+                    cursorPosition >= urlMatch.start && cursorPosition <= urlMatch.end
+                );
+                
+                if (clickedUrl) {
+                    event.preventDefault();
+                    this.openUrl(clickedUrl.url, clickedUrl.isEmail);
+                }
+            }
+            
+            handleLinkHover(event) {
+                if (!this.detectedUrls || this.detectedUrls.length === 0) return;
+                
+                const cursorPosition = this.editor.selectionStart;
+                
+                const hoveredUrl = this.detectedUrls.find(urlMatch => 
+                    cursorPosition >= urlMatch.start && cursorPosition <= urlMatch.end
+                );
+                
+                if (hoveredUrl) {
+                    this.editor.style.cursor = 'pointer';
+                    this.updateMemoStatus(`Click to open: ${hoveredUrl.url}`);
+                } else {
+                    this.editor.style.cursor = 'text';
+                }
+            }
+            
+            openUrl(url, isEmail = false) {
+                try {
+                    let finalUrl = url;
+                    
+                    if (isEmail) {
+                        finalUrl = `mailto:${url}`;
+                    } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        finalUrl = `https://${url}`;
+                    }
+                    
+                    if (window.__TAURI__) {
+                        window.__TAURI__.shell.open(finalUrl).catch(error => {
+                            console.error('Error opening URL:', error);
+                            this.updateMemoStatus(`Failed to open: ${url}`);
+                        });
+                    } else {
+                        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+                    }
+                    
+                    this.updateMemoStatus(`Opening: ${url}`);
+                    
+                } catch (error) {
+                    console.error('Error opening URL:', error);
+                    this.updateMemoStatus(`Error opening: ${url}`);
+                }
+            }
+        }
+
+        function bindWindowControls() {
+            const minimizeBtn = document.getElementById('minimize-btn');
+            const closeBtn = document.getElementById('close-btn');
+            
+            minimizeBtn?.addEventListener('click', async () => {
+                if (currentWindow) {
+                    await currentWindow.minimize();
+                }
+            });
+            
+            closeBtn?.addEventListener('click', async () => {
+                // Save before closing
+                if (memoTool && memoTool.autoSaveTimeout) {
+                    clearTimeout(memoTool.autoSaveTimeout);
+                    memoTool.autoSave();
+                }
+                
+                if (currentWindow) {
+                    await currentWindow.close();
+                }
+            });
+        }
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeMemoWindow();
+        });
+    </script>
+</body>
+</html>

@@ -151,6 +151,17 @@
                     </div>
                 </div>
                 
+                <!-- Memos Section -->
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('memos')">
+                        <div class="section-title">📝 Quick Memos</div>
+                        <div class="section-toggle collapsed" id="memos-toggle">▼</div>
+                    </div>
+                    <div class="section-content collapsed" id="memos-content">
+                        <!-- Memos tool content will be dynamically loaded here -->
+                    </div>
+                </div>
+                
                 <!-- Future tools sections will go here -->
             </div>
         </div>
@@ -551,6 +562,9 @@
                 } else if (toolName === 'todos') {
                     toolModule = await import('./tools/todo-list.js');
                     ToolClass = toolModule.TodoListTool;
+                } else if (toolName === 'memos') {
+                    toolModule = await import('./tools/memos.js');
+                    ToolClass = toolModule.MemosTool;
                 } else {
                     throw new Error(`Unknown tool: ${toolName}`);
                 }

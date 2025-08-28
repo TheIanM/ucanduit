@@ -32,18 +32,22 @@ The application consists of several integrated productivity tools:
 ## Development Phases
 
 The project follows a phased approach:
-- **Phase 1**: Foundation with Tauri setup and oscilloscope assistant
-- **Phase 2**: Core productivity features
-- **Phase 3**: Enhanced audio integration
-- **Phase 4**: Advanced UI with floating widgets  
-- **Phase 5**: Gamification system
-- **Phase 6**: Polish and distribution
+ Refer to the Plans directory for guidance
+ 
 
 ## Performance Requirements
 
 - Memory usage: Target <256MB (max 512MB)
 - CPU usage: <1% idle, <5% active
 - 24/7 operation capability without crashes or memory leaks
+
+## Code Standards
+- modular architecture to avoid duplicate code
+- all front end should use shared .css files for consistent appearance and class names across the codebase
+- you will ensure input is escaped to avoid introducing attack vectors
+- code will be clearly commented as needed
+- you will take your time. Do not guess, ask for clarification. Rushing leads to mistakes. 
+
 
 ## Development Status
 

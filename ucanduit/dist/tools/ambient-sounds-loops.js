@@ -362,15 +362,23 @@ export class AmbientSoundsTool {
         }
         
         try {
-            // HTML5 Audio doesn't need Web Audio Context initialization
+            // Ensure Tauri is ready before loading audio files
+            await this.waitForTauri();
             console.log('Initializing HTML5 Audio system...');
             
-            // Pre-load all audio files
-            const soundPromises = Object.entries(this.soundConfigs).map(async ([name, config]) => {
-                this.sounds[name] = await this.createAmbientSound(config);
+            // Initialize sound placeholders (no file loading yet)
+            Object.entries(this.soundConfigs).forEach(([name, config]) => {
+                this.sounds[name] = {
+                    audioElements: [],
+                    availableFiles: [],
+                    currentIndex: 0,
+                    isPlaying: false,
+                    config: config,
+                    loaded: false,
+                    volume: 0,
+                    rotationTimeout: null
+                };
             });
-            
-            await Promise.all(soundPromises);
             
             this.isInitialized = true;
             if (statusEl) {
@@ -429,11 +437,23 @@ export class AmbientSoundsTool {
                         audio.loop = true;
                         audio.volume = 0; // Start muted
                         
-                        // Convert file path to Tauri asset URL
+                        // Follow Tauri docs pattern for asset loading
                         const { convertFileSrc } = window.__TAURI__.core;
+                        
+                        // Use the absolute file path directly (it's already correct from Rust)
                         const assetUrl = convertFileSrc(file);
-                        console.log(`Converted ${file} to ${assetUrl}`);
+                        
+                        console.log(`Original path: ${file}`);
+                        console.log(`Asset URL: ${assetUrl}`);
+                        
+                        // Set type based on file extension
+                        const ext = file.toLowerCase().split('.').pop();
+                        if (ext === 'mp3') audio.type = 'audio/mpeg';
+                        else if (ext === 'ogg') audio.type = 'audio/ogg';
+                        else if (ext === 'm4a') audio.type = 'audio/mp4';
+                        
                         audio.src = assetUrl;
+                        audio.load(); // Explicit load call as per Tauri docs
                         
                         // Wait for the audio to be ready
                         await new Promise((resolve, reject) => {
@@ -601,12 +621,27 @@ export class AmbientSoundsTool {
         }
     }
     
-    setVolume(soundName, volume) {
+    async setVolume(soundName, volume) {
         if (!this.sounds[soundName]) return;
         
         const sound = this.sounds[soundName];
         const normalizedVolume = (volume / 100) * sound.config.baseGain;
         sound.volume = normalizedVolume;
+        
+        // Lazy load audio files only when volume > 0 and not loaded yet
+        if (volume > 0 && !sound.loaded) {
+            console.log(`Lazy loading audio for ${soundName}...`);
+            try {
+                const loadedSound = await this.createAmbientSound(sound.config);
+                // Copy loaded data back to existing sound object
+                sound.audioElements = loadedSound.audioElements;
+                sound.availableFiles = loadedSound.availableFiles;
+                sound.loaded = loadedSound.loaded;
+            } catch (error) {
+                console.error(`Failed to lazy load ${soundName}:`, error);
+                return;
+            }
+        }
         
         if (volume > 0 && !sound.isPlaying && sound.loaded) {
             this.startSound(soundName);
@@ -627,7 +662,7 @@ export class AmbientSoundsTool {
             // Only initialize the audio context, not reload sounds
             await this.initialize();
         }
-        this.setVolume(soundName, volume);
+        await this.setVolume(soundName, volume);
         
         const slider = this.container.querySelector(`[data-sound="${soundName}"]`);
         if (slider) {

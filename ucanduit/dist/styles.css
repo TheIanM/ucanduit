@@ -102,35 +102,56 @@ p {
     font-size: 12px;
     font-weight: 700;
     margin: 2px;
-    border: 2px solid var(--not-black);
+    border: 1px solid var(--not-black);
 }
 
-.badge-success { background: var(--success); color: white; }
-.badge-primary { background: var(--primary); color: white; }
-.badge-warning { background: var(--warning); color: white; }
-.badge-danger { background: var(--danger); color: white; }
-.badge-accent { background: var(--accent); color: white; }
+.badge-success { 
+    background: radial-gradient(circle, var(--success), rgba(78, 207, 157, 0.8)); 
+    color: white; 
+    box-shadow: 0 2px 8px rgba(78, 207, 157, 0.3);
+}
+.badge-primary { 
+    background: radial-gradient(circle, var(--primary), rgba(63, 136, 197, 0.8)); 
+    color: white; 
+    box-shadow: 0 2px 8px rgba(63, 136, 197, 0.3);
+}
+.badge-warning { 
+    background: radial-gradient(circle, var(--warning), rgba(255, 155, 84, 0.8)); 
+    color: white; 
+    box-shadow: 0 2px 8px rgba(255, 155, 84, 0.3);
+}
+.badge-danger { 
+    background: radial-gradient(circle, var(--danger), rgba(215, 38, 56, 0.8)); 
+    color: white; 
+    box-shadow: 0 2px 8px rgba(215, 38, 56, 0.3);
+}
+.badge-accent { 
+    background: radial-gradient(circle, var(--accent), rgba(176, 107, 255, 0.8)); 
+    color: white; 
+    box-shadow: 0 2px 8px rgba(176, 107, 255, 0.3);
+}
 
 button {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(42, 45, 52, 0.03);
     color: var(--not-black);
-    border: 3px solid var(--not-black);
-    padding: 10px 20px;
-    border-radius: 20px;
+    border: none;
+    border-left: 2px solid var(--udu-green);
+    padding: 8px 12px;
+    border-radius: 4px;
     margin: 5px;
     cursor: pointer;
-    font-weight: 700;
+    font-weight: 500;
     font-family: 'Quicksand', sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
     transition: all 0.2s ease;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 button:hover {
-    background: rgba(42, 45, 52, 0.8);
-    color: white;
+    background: rgba(42, 45, 52, 0.08);
+    border-left: 2px solid var(--candu-blue);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 6px rgba(42, 45, 52, 0.1);
 }
 
 /* Oscilloscope Styles */
@@ -198,7 +219,7 @@ button:hover {
     padding: 15px 15px 25px 15px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    border: 3px solid var(--not-black);
+    border: 1px solid var(--not-black);
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -254,7 +275,7 @@ button:hover {
 .settings-button {
     background: rgba(255, 255, 255, 0.2);
     color: var(--not-black);
-    border: 3px solid var(--not-black);
+    border: 1px solid var(--not-black);
     border-radius: 50%;
     width: 35px;
     height: 35px;
@@ -270,8 +291,10 @@ button:hover {
 }
 
 .settings-button:hover {
-    background: rgba(42, 45, 52, 0.8);
+    background: radial-gradient(circle, rgba(42, 45, 52, 0.8), rgba(42, 45, 52, 0.6));
     color: white;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(42, 45, 52, 0.3);
 }
 
 .settings-dropdown {
@@ -279,7 +302,7 @@ button:hover {
     top: 40px;
     right: 0;
     background: var(--not-white);
-    border: 2px solid var(--not-black);
+    border: 1px solid var(--not-black);
     border-radius: 12px;
     padding: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -321,7 +344,7 @@ button:hover {
 
 /* Responsive adjustments for different window modes */
 @media (max-height: 250px) {
-    body { padding: 3px; overflow: hidden; }
+    body { padding: 3px; overflow-y: auto; }
     .container { 
         display: grid;
         grid-template-columns: 160px 1fr;

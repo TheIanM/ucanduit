@@ -162,6 +162,17 @@
                     </div>
                 </div>
                 
+                <!-- Weather Section -->
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('weather')">
+                        <div class="section-title">🌤️ Weather</div>
+                        <div class="section-toggle collapsed" id="weather-toggle">▼</div>
+                    </div>
+                    <div class="section-content collapsed" id="weather-content">
+                        <!-- Weather tool content will be dynamically loaded here -->
+                    </div>
+                </div>
+                
                 <!-- Future tools sections will go here -->
             </div>
         </div>
@@ -565,6 +576,9 @@
                 } else if (toolName === 'memos') {
                     toolModule = await import('./tools/memos.js');
                     ToolClass = toolModule.MemosTool;
+                } else if (toolName === 'weather') {
+                    toolModule = await import('./tools/weather.js');
+                    ToolClass = toolModule.WeatherTool;
                 } else {
                     throw new Error(`Unknown tool: ${toolName}`);
                 }
@@ -715,6 +729,29 @@
                         }
                         return 'success';
                     }
+                },
+                {
+                    id: 'weather-status',  
+                    getText: () => {
+                        const weatherTool = window.loadedTools?.weather;
+                        if (weatherTool && weatherTool.getTickerSummary) {
+                            const summary = weatherTool.getTickerSummary();
+                            if (summary) return summary;
+                        }
+                        return 'Weather: Not loaded';
+                    },
+                    getType: () => {
+                        const weatherTool = window.loadedTools?.weather;
+                        if (weatherTool && weatherTool.currentWeatherData) {
+                            const temp = weatherTool.currentWeatherData.temperature;
+                            if (temp !== undefined) {
+                                if (temp < 0) return 'primary'; // Cold - blue
+                                if (temp > 25) return 'danger'; // Hot - red
+                                return 'success'; // Moderate - green
+                            }
+                        }
+                        return 'secondary';
+                    }
                 }
             ],
             
@@ -794,6 +831,7 @@
                     'timer-status': 'timer',
                     'todos-status': 'todos', 
                     'ambient-status': 'sounds',
+                    'weather-status': 'weather',
                     'ossc-status': null // OssC doesn't have a collapsible section
                 };
                 

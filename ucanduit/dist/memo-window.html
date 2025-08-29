@@ -9,133 +9,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="tools/tool-base.css">
     <link rel="stylesheet" href="tools/memos.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #F5F5F5;
-            --text-primary: #2a2d34;
-            --translucent-bg: rgba(255, 255, 255, 0.95);
-        }
-
-        body {
-            font-family: 'Quicksand', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .memo-window-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 15px;
-            gap: 10px;
-        }
-
-        .memo-window-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 15px;
-            background: var(--translucent-bg);
-            border-radius: 12px;
-            border-bottom: 2px solid rgba(42, 45, 52, 0.1);
-            flex-shrink: 0;
-        }
-
-        .memo-window-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        .memo-window-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .memo-window-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: var(--translucent-bg);
-            border-radius: 12px;
-            padding: 20px;
-            overflow: hidden;
-        }
-
-        .memo-editor {
-            flex: 1;
-            border: none;
-            background: transparent;
-            resize: none;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        .memo-editor:focus {
-            outline: none;
-            box-shadow: none;
-        }
-
-        .memo-toolbar {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid rgba(42, 45, 52, 0.1);
-        }
-
-        .memo-status {
-            padding-top: 10px;
-            border-top: 2px solid rgba(42, 45, 52, 0.1);
-            flex-shrink: 0;
-        }
-
-        /* Window-specific responsive styles */
-        @media (max-width: 400px) {
-            .memo-window-container {
-                padding: 10px;
-            }
-            
-            .memo-window-content {
-                padding: 15px;
-            }
-            
-            .memo-editor {
-                font-size: 14px;
-            }
-        }
-
-        @media (max-height: 300px) {
-            .memo-window-header {
-                padding: 5px 10px;
-            }
-            
-            .memo-window-title {
-                font-size: 14px;
-            }
-            
-            .memo-toolbar {
-                margin-bottom: 10px;
-                padding-bottom: 10px;
-            }
-        }
-    </style>
+    
 </head>
 <body>
+    <!-- Animated background circles -->
+    <div class="animated-background" id="animated-background"></div>
     <div class="memo-window-container">
         <div class="memo-window-header">
-            <h1 class="memo-window-title">📝 Quick Memos</h1>
-            <div class="memo-window-controls">
-                <button class="tool-btn secondary" id="minimize-btn" title="Minimize">−</button>
-                <button class="tool-btn danger" id="close-btn" title="Close">✕</button>
-            </div>
+            <h1 class="memo-window-title" id="memo-window-title">📝 Quick Memos</h1>
         </div>
 
         <div class="memo-window-content">
@@ -178,6 +59,7 @@ This dedicated memo window gives you plenty of space to write!"
     <script type="module">
         // Import and use the memos tool logic
         import { MemosTool } from './tools/memos.js';
+        import { createAnimatedBackground, getSmallWindowCircles } from './animated-background.js';
 
         let memoTool;
         let currentWindow;
@@ -226,7 +108,8 @@ This dedicated memo window gives you plenty of space to write!"
         class MemoToolWindow {
             constructor(container) {
                 this.container = container;
-                this.memoContent = '';
+                this.memos = {}; // Multi-memo storage
+                this.currentMemoId = null; // Currently loaded memo
                 this.autoSaveTimeout = null;
                 this.autoSaveDelay = 1000;
                 this.detectedUrls = [];
@@ -239,8 +122,14 @@ This dedicated memo window gives you plenty of space to write!"
             }
             
             async init() {
-                // Load saved content
-                this.loadSavedContent();
+                console.log('🚀 Initializing memo window...');
+                
+                // Load memos from storage
+                await this.loadFromStorage();
+                console.log('📁 Storage loaded, memo count:', Object.keys(this.memos).length);
+                
+                // Check for specific memo to load (passed via URL params or global var)
+                await this.checkForSpecificMemo();
                 
                 // Bind events
                 this.bindEvents();
@@ -250,17 +139,104 @@ This dedicated memo window gives you plenty of space to write!"
                     this.editor.focus();
                 }, 100);
                 
-                this.updateMemoStatus('Loaded ' + this.formatContentLength());
+                console.log('✅ Memo window initialization complete');
+                this.updateMemoStatus('Ready ' + this.formatContentLength());
             }
             
-            loadSavedContent() {
+            // Load memos using same pattern as main tool
+            async loadFromStorage() {
                 try {
-                    const saved = localStorage.getItem('ucanduit_memostool_memoContent');
-                    this.memoContent = saved ? JSON.parse(saved) : '';
-                    this.editor.value = this.memoContent;
+                    // First try to load from external file using Tauri
+                    if (window.__TAURI__ && window.__TAURI__.core) {
+                        const fileData = await window.__TAURI__.core.invoke('read_json_file', {
+                            filename: 'ucanduit-memos.json'
+                        });
+                        if (fileData) {
+                            this.memos = fileData;
+                            console.log('✅ Memos loaded from external file in window');
+                            return;
+                        }
+                    }
                 } catch (error) {
-                    console.error('Error loading saved content:', error);
-                    this.memoContent = '';
+                    console.log('📁 No external memos file found in window, checking localStorage...');
+                }
+                
+                try {
+                    // Fallback to localStorage
+                    const storedMemos = localStorage.getItem('ucanduit_memostool_memos');
+                    if (storedMemos) {
+                        this.memos = JSON.parse(storedMemos);
+                        console.log('✅ Memos loaded from localStorage in window');
+                    } else {
+                        // Check old single memo storage for migration
+                        const oldMemo = localStorage.getItem('ucanduit_memostool_memoContent');
+                        if (oldMemo) {
+                            const content = JSON.parse(oldMemo);
+                            if (content.trim()) {
+                                // Migrate old memo
+                                const memoId = this.generateId();
+                                this.memos[memoId] = this.createMemo('Migrated Note', content, memoId);
+                                await this.saveToStorage();
+                                localStorage.removeItem('ucanduit_memostool_memoContent');
+                                console.log('🔄 Migrated old memo to new format in window');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load memos in window:', error);
+                    this.memos = {};
+                }
+            }
+            
+            // Check if a specific memo should be loaded
+            async checkForSpecificMemo() {
+                // Check URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const memoId = urlParams.get('memoId');
+                
+                console.log('🔍 Checking for specific memo:', memoId);
+                console.log('📋 Available memos:', Object.keys(this.memos));
+                
+                // Also check if there's a global variable set by the parent window
+                if (window.loadMemoId) {
+                    console.log('🎯 Loading from global variable:', window.loadMemoId);
+                    this.loadSpecificMemo(window.loadMemoId);
+                    delete window.loadMemoId; // Clean up
+                } else if (memoId) {
+                    if (this.memos[memoId]) {
+                        console.log('✅ Found memo, loading:', memoId);
+                        this.loadSpecificMemo(memoId);
+                    } else {
+                        console.log('❌ Memo not found:', memoId);
+                        this.updateMemoStatus(`Memo not found: ${memoId}`);
+                        // Still create a new memo for the user
+                        this.editor.value = '';
+                    }
+                } else {
+                    // Load most recent memo or create new one
+                    console.log('📝 No specific memo requested, loading recent or new');
+                    const recentMemos = this.getRecentMemos(1);
+                    if (recentMemos.length > 0) {
+                        this.loadSpecificMemo(recentMemos[0].id);
+                    } else {
+                        // New memo
+                        this.editor.value = '';
+                        this.updateMemoStatus('New memo ready');
+                    }
+                }
+            }
+            
+            loadSpecificMemo(memoId) {
+                console.log('🔄 Loading specific memo:', memoId);
+                if (this.memos[memoId]) {
+                    this.currentMemoId = memoId;
+                    this.editor.value = this.memos[memoId].content;
+                    this.updateMemoStatus(`Loaded: ${this.memos[memoId].title}`);
+                    this.updateWindowTitle(this.memos[memoId].title);
+                    console.log('✅ Memo loaded successfully:', this.memos[memoId].title);
+                } else {
+                    console.log('❌ Memo not found in loadSpecificMemo:', memoId);
+                    this.updateMemoStatus(`Error: Memo ${memoId} not found`);
                 }
             }
             
@@ -335,13 +311,30 @@ This dedicated memo window gives you plenty of space to write!"
                 this.updateMemoStatus('Typing...');
             }
             
-            autoSave() {
+            async autoSave() {
                 const content = this.editor.value;
-                this.memoContent = content;
                 
                 try {
-                    localStorage.setItem('ucanduit_memostool_memoContent', JSON.stringify(content));
-                    this.updateMemoStatus('Saved ' + this.formatContentLength());
+                    if (this.currentMemoId && this.memos[this.currentMemoId]) {
+                        // Update existing memo
+                        this.memos[this.currentMemoId].content = content;
+                        const newTitle = this.generateTitle(content);
+                        this.memos[this.currentMemoId].title = newTitle;
+                        this.memos[this.currentMemoId].preview = this.generatePreview(content);
+                        this.memos[this.currentMemoId].updatedAt = new Date().toISOString();
+                        this.updateWindowTitle(newTitle);
+                    } else if (content.trim()) {
+                        // Create new memo if there's content
+                        const memoId = this.generateId();
+                        this.currentMemoId = memoId;
+                        this.memos[memoId] = this.createMemo(null, content, memoId);
+                        this.updateWindowTitle(this.memos[memoId].title);
+                    }
+                    
+                    if (content.trim()) {
+                        await this.saveToStorage();
+                        this.updateMemoStatus('Saved ' + this.formatContentLength());
+                    }
                 } catch (error) {
                     console.error('Save failed:', error);
                     this.updateMemoStatus('Save failed!');
@@ -349,8 +342,9 @@ This dedicated memo window gives you plenty of space to write!"
             }
             
             formatContentLength() {
-                const wordCount = this.memoContent.trim().split(/\s+/).filter(w => w.length > 0).length;
-                const charCount = this.memoContent.length;
+                const content = this.editor.value;
+                const wordCount = content.trim().split(/\s+/).filter(w => w.length > 0).length;
+                const charCount = content.length;
                 
                 if (charCount === 0) return '(empty)';
                 return `(${wordCount} words, ${charCount} chars)`;
@@ -359,6 +353,21 @@ This dedicated memo window gives you plenty of space to write!"
             updateMemoStatus(message) {
                 if (this.statusEl) {
                     this.statusEl.textContent = message;
+                }
+            }
+            
+            updateWindowTitle(title) {
+                // Update window title in header
+                const titleEl = document.getElementById('memo-window-title');
+                if (titleEl) {
+                    titleEl.textContent = `📝 ${title}`;
+                }
+                
+                // Update browser/Tauri window title
+                if (window.__TAURI__ && currentWindow) {
+                    currentWindow.setTitle(`${title} - ucanduit`).catch(console.error);
+                } else {
+                    document.title = `${title} - ucanduit`;
                 }
             }
             
@@ -441,10 +450,9 @@ This dedicated memo window gives you plenty of space to write!"
             
             clearAllContent() {
                 this.editor.value = '';
-                this.memoContent = '';
-                localStorage.setItem('ucanduit_memostool_memoContent', JSON.stringify(''));
                 this.updateMemoStatus('Content cleared');
                 this.editor.focus();
+                this.scheduleAutoSave(); // This will update the current memo
             }
             
             processLinks() {
@@ -523,33 +531,109 @@ This dedicated memo window gives you plenty of space to write!"
                     this.updateMemoStatus(`Error opening: ${url}`);
                 }
             }
+            
+            // Utility methods matching main tool
+            generateId() {
+                return 'memo_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            }
+            
+            createMemo(title, content, id = null) {
+                const now = new Date();
+                return {
+                    id: id || this.generateId(),
+                    title: title || this.generateTitle(content),
+                    content: content,
+                    preview: this.generatePreview(content),
+                    createdAt: now.toISOString(),
+                    updatedAt: now.toISOString(),
+                    date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                };
+            }
+            
+            generateTitle(content) {
+                if (!content || !content.trim()) return 'Untitled Note';
+                
+                // Try to use first line as title
+                const firstLine = content.trim().split('\n')[0];
+                if (firstLine.length > 0) {
+                    // Remove markdown formatting for title
+                    let title = firstLine.replace(/[*_`#]/g, '').trim();
+                    if (title.length > 50) {
+                        title = title.substring(0, 50) + '...';
+                    }
+                    return title || 'Untitled Note';
+                }
+                
+                // Fallback to first few words
+                const words = content.trim().split(/\s+/);
+                return words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
+            }
+            
+            generatePreview(content) {
+                if (!content || !content.trim()) return '';
+                
+                // Remove markdown formatting and get preview
+                const cleaned = content.replace(/[*_`#]/g, '').replace(/\n/g, ' ').trim();
+                return cleaned.substring(0, 80) + (cleaned.length > 80 ? '...' : '');
+            }
+            
+            getRecentMemos(limit = 3) {
+                if (!this.memos) return [];
+                return Object.values(this.memos)
+                    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                    .slice(0, limit);
+            }
+            
+            async saveToStorage() {
+                try {
+                    // First try to save to external file using Tauri
+                    if (window.__TAURI__ && window.__TAURI__.core) {
+                        await window.__TAURI__.core.invoke('write_json_file', {
+                            filename: 'ucanduit-memos.json',
+                            data: this.memos
+                        });
+                        console.log('\u2705 Memos saved to external file from window');
+                    } else {
+                        // Fallback to localStorage if Tauri not available
+                        localStorage.setItem('ucanduit_memostool_memos', JSON.stringify(this.memos));
+                        console.log('\u2705 Memos saved to localStorage from window');
+                    }
+                } catch (error) {
+                    console.error('\u274c Failed to save memos from window:', error);
+                }
+            }
         }
 
         function bindWindowControls() {
-            const minimizeBtn = document.getElementById('minimize-btn');
-            const closeBtn = document.getElementById('close-btn');
-            
-            minimizeBtn?.addEventListener('click', async () => {
-                if (currentWindow) {
-                    await currentWindow.minimize();
-                }
-            });
-            
-            closeBtn?.addEventListener('click', async () => {
-                // Save before closing
-                if (memoTool && memoTool.autoSaveTimeout) {
-                    clearTimeout(memoTool.autoSaveTimeout);
-                    memoTool.autoSave();
-                }
-                
-                if (currentWindow) {
-                    await currentWindow.close();
-                }
-            });
+            // Handle window close event to save before closing
+            if (currentWindow) {
+                currentWindow.onCloseRequested(async () => {
+                    // Save before closing
+                    if (memoTool && memoTool.autoSaveTimeout) {
+                        clearTimeout(memoTool.autoSaveTimeout);
+                        await memoTool.autoSave();
+                    }
+                });
+            }
         }
 
+        // Global function to load a specific memo (called by parent window)
+        window.loadSpecificMemo = function(memoId) {
+            if (memoTool && memoTool.memos[memoId]) {
+                memoTool.loadSpecificMemo(memoId);
+            } else {
+                // Store the ID to load after initialization
+                window.loadMemoId = memoId;
+            }
+        };
+        
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', () => {
+            // Create animated background with smaller circles for memo windows
+            createAnimatedBackground({ 
+                containerId: 'animated-background',
+                circles: getSmallWindowCircles()
+            });
             initializeMemoWindow();
         });
     </script>

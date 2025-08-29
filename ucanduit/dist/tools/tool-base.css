@@ -116,9 +116,7 @@
 /* Container Styles */
 .tool-container {
     padding: 15px;
-    background: var(--translucent-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: transparent;
     border-radius: 12px;
     margin: 8px 0;
 }

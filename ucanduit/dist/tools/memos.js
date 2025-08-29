@@ -72,7 +72,7 @@ export class MemosTool extends ToolBase {
                     if (content.trim()) {
                         // Migrate old memo
                         const memoId = this.generateId();
-                        this.memos[memoId] = this.createMemo('Migrated Note', content);
+                        this.memos[memoId] = this.createMemo('Migrated Note', content, memoId);
                         await this.saveToStorage();
                         localStorage.removeItem('ucanduit_memostool_memoContent');
                         console.log('🔄 Migrated old memo to new format');
@@ -108,10 +108,10 @@ export class MemosTool extends ToolBase {
         return 'memo_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     }
     
-    createMemo(title, content) {
+    createMemo(title, content, id = null) {
         const now = new Date();
         return {
-            id: this.generateId(),
+            id: id || this.generateId(),
             title: title || this.generateTitle(content),
             content: content,
             preview: this.generatePreview(content),
@@ -210,7 +210,7 @@ export class MemosTool extends ToolBase {
                     </div>
                     
                     <!-- Compact launch button -->
-                    <button class="tool-btn secondary" id="open-memo-window-${this.id}" style="
+                    <button class="tool-btn primary" id="open-memo-window-${this.id}" style="
                         font-size: 11px;
                         padding: 5px 10px;
                         width: 100%;
@@ -254,34 +254,39 @@ export class MemosTool extends ToolBase {
         });
     }
     
-    async openMemoWindow() {
+    async openMemoWindow(memoId = null) {
         try {
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                window.open('./memo-window.html', '_blank', 'width=600,height=500');
+                const url = memoId ? `./memo-window.html?memoId=${memoId}` : './memo-window.html';
+                window.open(url, '_blank', 'width=600,height=500');
                 this.updateStatus('Opened memo window (browser mode)', 'primary', 2000);
                 return;
             }
 
-            // Use the same pattern as splash.html
+            // Use the same pattern as splash.html but with cleaner config
             if (window.__TAURI__.webview && window.__TAURI__.webviewWindow) {
                 const { webviewWindow } = window.__TAURI__;
                 
-                // Check if memo window already exists (simplified - just try to create it)
-                // If it exists, Tauri will handle focusing it
-                
-                // Create memo window using the same pattern as splash.html
-                const memoWindow = new webviewWindow.WebviewWindow('memo-window', {
-                    url: 'memo-window.html',
-                    title: 'Quick Memos - ucanduit',
+                // Create memo window using unique label for each memo
+                const url = memoId ? `memo-window.html?memoId=${memoId}` : 'memo-window.html';
+                const windowLabel = memoId ? `memo-window-${memoId}` : `memo-window-new-${Date.now()}`;
+                const windowTitle = memoId && this.memos[memoId] ? 
+                    `${this.memos[memoId].title} - ucanduit` : 
+                    'New Memo - ucanduit';
+                    
+                const memoWindow = new webviewWindow.WebviewWindow(windowLabel, {
+                    url: url,
+                    title: windowTitle,
                     width: 600,
                     height: 500,
                     alwaysOnTop: false,
                     decorations: true,
-                    transparent: false
+                    transparent: false,
+                    titleBarStyle: 'overlay'
                 });
 
-                // Handle window events (same as splash.html)
+                // Handle window events
                 memoWindow.once('tauri://created', () => {
                     console.log('Memo window created successfully');
                     this.updateStatus('Memo window opened', 'success', 2000);
@@ -301,21 +306,29 @@ export class MemosTool extends ToolBase {
             this.updateStatus('Error: ' + error.message, 'danger', 3000);
             
             // Fallback: open in browser tab
-            window.open('./memo-window.html', '_blank', 'width=600,height=500');
+            const fallbackUrl = memoId ? `./memo-window.html?memoId=${memoId}` : './memo-window.html';
+            window.open(fallbackUrl, '_blank', 'width=600,height=500');
         }
     }
     
     async createQuickNote(content) {
         const memoId = this.generateId();
-        this.memos[memoId] = this.createMemo(null, content);
+        this.memos[memoId] = this.createMemo(null, content, memoId);
         await this.saveToStorage();
         this.updateStatus(`Quick note saved: "${this.memos[memoId].title}"`, 'success', 2000);
     }
     
-    loadMemoToWindow(memoId) {
-        // Set current memo and open window
+    async loadMemoToWindow(memoId) {
+        // Check if memo exists before proceeding
+        if (!this.memos[memoId]) {
+            this.updateStatus(`Error: Memo not found`, 'danger', 3000);
+            console.error('Memo not found:', memoId, 'Available memos:', Object.keys(this.memos));
+            return;
+        }
+        
+        // Set current memo and open window with specific memo
         this.currentMemoId = memoId;
-        this.openMemoWindow();
+        await this.openMemoWindow(memoId);
         this.updateStatus(`Loading: "${this.memos[memoId].title}"`, 'primary', 1500);
     }
     
@@ -339,7 +352,7 @@ export class MemosTool extends ToolBase {
             // Create new memo
             const memoId = this.generateId();
             this.currentMemoId = memoId;
-            this.memos[memoId] = this.createMemo(null, content);
+            this.memos[memoId] = this.createMemo(null, content, memoId);
         }
         await this.saveToStorage();
     }

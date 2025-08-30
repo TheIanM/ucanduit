@@ -1,191 +1,55 @@
 /**
  * Todo List Tool - ES6 Module
- * Supports multiple lists with add/complete functionality and local storage persistence
- * Updated: Dark mode support with CSS variables
+ * Supports multiple lists with add/complete functionality and persistent storage
+ * Updated: Uses new ToolBase architecture and shared styling
  */
 
-export class TodoListTool {
+import { ToolBase } from './tool-base.js';
+
+export class TodoListTool extends ToolBase {
     constructor(container) {
-        this.container = container;
+        super(container);
         this.lists = {};
         this.activeListId = null;
         this.currentView = 'lists'; // 'lists' or 'items'
-        this.backgroundColors = ['#4ecf9d', '#3f88c5', '#d72638', '#FF6B9F', '#FF9B54', '#B06BFF'];
-        
-        this.initialize();
     }
     
-    async initialize() {
-        await this.loadFromStorage();
-        this.render();
-        this.bindEvents();
-        this.applyBreathingBackgrounds();
+    async render() {
+        await this.loadTodos();
+        this.renderContent();
     }
     
-    // Generate individual breathing circle animation for an element
-    createBreathingBackground(element) {
-        // Get current background color from main app (or use random)
-        const selectedColor = window.currentBackgroundColor || 
-                            this.backgroundColors[Math.floor(Math.random() * this.backgroundColors.length)];
-        
-        // Create a unique breathing circle for this element
-        const size = 80 + Math.random() * 120; // Smaller than main bg circles
-        const delay = Math.random() * 20;
-        const duration = 15 + Math.random() * 10; // Slightly faster than main
-        const opacity = 0.15 + Math.random() * 0.2; // More subtle
-        
-        element.style.position = 'relative';
-        element.style.overflow = 'hidden';
-        
-        // Create the breathing circle
-        const circle = document.createElement('div');
-        circle.style.cssText = `
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: ${size}px;
-            height: ${size}px;
-            background-color: ${selectedColor};
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            filter: blur(30px);
-            opacity: ${opacity};
-            animation: breathingPulse ${duration}s infinite alternate ease-in-out ${delay}s;
-            z-index: 0;
-            pointer-events: none;
-        `;
-        
-        element.insertBefore(circle, element.firstChild);
-        
-        // Ensure text content stays above the circle
-        const textElements = element.querySelectorAll('*:not([style*="z-index"])');
-        textElements.forEach(el => {
-            el.style.position = 'relative';
-            el.style.zIndex = '1';
-        });
-    }
-    
-    // Apply breathing backgrounds to all todo components
-    applyBreathingBackgrounds() {
-        // Add CSS animation if not already present
-        if (!document.getElementById('breathing-animation')) {
-            const style = document.createElement('style');
-            style.id = 'breathing-animation';
-            style.textContent = `
-                @keyframes breathingPulse {
-                    0% {
-                        transform: translate(-50%, -50%) scale(0.8);
-                        opacity: 0.1;
-                    }
-                    100% {
-                        transform: translate(-50%, -50%) scale(1.2);
-                        opacity: 0.3;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        // Apply to all todo components
-        setTimeout(() => {
-            const todoItems = this.container.querySelectorAll('.todo-list-item, .todo-item, .add-button, .back-button, .confirm-add, .cancel-add');
-            todoItems.forEach(element => {
-                if (!element.querySelector('div[style*="breathingPulse"]')) {
-                    this.createBreathingBackground(element);
-                }
-            });
-        }, 100); // Small delay to ensure elements are rendered
-    }
-    
-    render() {
+    renderContent() {
         this.container.innerHTML = `
-            <div class="todo-container" style="
-                font-family: 'Quicksand', sans-serif;
-                padding: 10px;
-            ">
-                <div class="todo-header" style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: 15px;
-                ">
-                    <div class="todo-breadcrumb" style="
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: var(--text-primary);
-                    "></div>
-                    <button class="add-button">+ Add</button>
+            <div class="tool-container">
+                <div class="tool-header">
+                    <div class="todo-breadcrumb tool-title"></div>
+                    <button class="tool-btn add-button">+ Add</button>
                 </div>
                 
-                <div class="todo-content" style="
-                    max-height: 400px;
-                    overflow-y: auto;
-                ">
-                    <!-- Dynamic content will be rendered here -->
-                </div>
-                
-                <!-- Add item input (hidden by default) -->
-                <div class="add-item-input" style="
-                    display: none;
-                    margin-top: 10px;
-                    border-top: 2px solid #f0f0f0;
-                    padding-top: 10px;
-                ">
-                    <input type="text" class="new-item-text" placeholder="What needs to be done?" style="
-                        width: 100%;
-                        padding: 8px 12px;
-                        border: 2px solid var(--text-primary);
-                        border-radius: 8px;
-                        font-family: 'Quicksand', sans-serif;
-                        font-size: 14px;
-                        outline: none;
-                        background: var(--not-white);
-                        color: var(--text-primary);
-                    ">
-                    <div style="margin-top: 8px; text-align: right;">
-                        <button class="cancel-add">Cancel</button>
-                        <button class="confirm-add">Add</button>
+                <div class="tool-content">
+                    <div class="todo-content" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Dynamic content will be rendered here -->
+                    </div>
+                    
+                    <!-- Add item input (hidden by default) -->
+                    <div class="add-item-input" style="display: none;">
+                        <input type="text" class="tool-input new-item-text" placeholder="What needs to be done?">
+                        <div class="tool-row" style="margin-top: 8px; justify-content: flex-end; gap: 8px;">
+                            <button class="tool-btn cancel-add">Cancel</button>
+                            <button class="tool-btn primary confirm-add">Add</button>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <style>
-                .add-button {
-                    background: transparent !important;
-                    color: var(--text-primary) !important;
-                    border: 3px solid var(--text-primary) !important;
-                    border-radius: 20px !important;
-                    padding: 6px 12px !important;
-                    font-size: 12px !important;
-                    font-weight: 700 !important;
-                    cursor: pointer !important;
-                    transition: all 0.2s ease !important;
-                    font-family: 'Quicksand', sans-serif !important;
-                }
-                
-                .cancel-add, .confirm-add {
-                    background: transparent !important;
-                    color: var(--text-primary) !important;
-                    border: 3px solid var(--text-primary) !important;
-                    border-radius: 20px !important;
-                    padding: 6px 12px !important;
-                    font-size: 11px !important;
-                    font-weight: 700 !important;
-                    cursor: pointer !important;
-                    font-family: 'Quicksand', sans-serif !important;
-                    transition: all 0.2s ease !important;
-                }
-                
-                .cancel-add {
-                    margin-right: 5px;
-                }
-                
                 .todo-list-item, .todo-item {
                     background: transparent;
                     border: 2px solid var(--text-primary);
-                    border-radius: 12px;
+                    border-radius: 8px;
                     margin-bottom: 8px;
-                    padding: 12px 15px;
+                    padding: 12px;
                     cursor: pointer;
                     transition: all 0.2s ease;
                     font-weight: 600;
@@ -194,40 +58,31 @@ export class TodoListTool {
                 }
                 
                 .todo-list-item:hover, .todo-item:hover {
-                    background: var(--text-primary) !important;
-                    color: var(--not-white) !important;
+                    background: var(--text-primary);
+                    color: var(--background);
                     transform: translateY(-1px);
                     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 }
                 
                 .todo-list-item:hover .todo-list-meta {
-                    color: #e0e0e0 !important;
+                    color: rgba(255,255,255,0.8);
                 }
                 
                 .todo-item.completed {
                     text-decoration: line-through;
                     opacity: 0.7;
-                    background: #f0f8f0;
-                    border-color: #4ecf9d;
+                    padding-left: 30px;
                 }
                 
                 .todo-item.completed::before {
                     content: "✓";
                     position: absolute;
-                    left: 8px;
+                    left: 10px;
                     top: 50%;
                     transform: translateY(-50%);
-                    color: #4ecf9d;
+                    color: var(--success);
                     font-weight: bold;
                     font-size: 16px;
-                }
-                
-                .todo-item.completed:hover::before {
-                    color: #4ecf9d !important;
-                }
-                
-                .todo-item.completed {
-                    padding-left: 30px;
                 }
                 
                 .todo-list-meta {
@@ -238,43 +93,7 @@ export class TodoListTool {
                 }
                 
                 .back-button {
-                    background: transparent;
-                    color: var(--text-primary);
-                    border: 3px solid var(--text-primary);
-                    border-radius: 20px;
-                    padding: 6px 12px;
-                    font-size: 11px;
-                    font-weight: 700;
-                    cursor: pointer;
                     margin-right: 10px;
-                    font-family: 'Quicksand', sans-serif;
-                    transition: all 0.2s ease;
-                }
-                
-                .back-button:hover, .add-button:hover, .cancel-add:hover, .confirm-add:hover {
-                    background: var(--text-primary) !important;
-                    color: var(--not-white) !important;
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                }
-                
-                /* Responsive adjustments */
-                @media (max-height: 250px) {
-                    .todo-container { padding: 4px !important; }
-                    .todo-header { margin-bottom: 8px !important; }
-                    .todo-content { max-height: 120px !important; }
-                    .todo-list-item, .todo-item { 
-                        padding: 6px 8px !important; 
-                        margin-bottom: 4px !important; 
-                        font-size: 11px !important;
-                    }
-                    .todo-breadcrumb { font-size: 10px !important; }
-                    .add-button { padding: 3px 8px !important; font-size: 10px !important; }
-                }
-                
-                @media (max-width: 250px) {
-                    .todo-header { flex-direction: column !important; gap: 5px !important; }
-                    .todo-list-item, .todo-item { font-size: 12px !important; }
                 }
             </style>
         `;
@@ -283,42 +102,46 @@ export class TodoListTool {
     }
     
     bindEvents() {
-        const addButton = this.container.querySelector('.add-button');
-        const confirmAdd = this.container.querySelector('.confirm-add');
-        const cancelAdd = this.container.querySelector('.cancel-add');
-        const newItemInput = this.container.querySelector('.new-item-text');
+        const addButton = this.find('.add-button');
+        const confirmAdd = this.find('.confirm-add');
+        const cancelAdd = this.find('.cancel-add');
+        const newItemInput = this.find('.new-item-text');
         
-        addButton.addEventListener('click', () => this.showAddInput());
-        confirmAdd.addEventListener('click', async () => await this.handleAdd());
-        cancelAdd.addEventListener('click', () => this.hideAddInput());
+        if (addButton) addButton.addEventListener('click', () => this.showAddInput());
+        if (confirmAdd) confirmAdd.addEventListener('click', async () => await this.handleAdd());
+        if (cancelAdd) cancelAdd.addEventListener('click', () => this.hideAddInput());
         
-        newItemInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') await this.handleAdd();
-            if (e.key === 'Escape') this.hideAddInput();
-        });
+        if (newItemInput) {
+            newItemInput.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') await this.handleAdd();
+                if (e.key === 'Escape') this.hideAddInput();
+            });
+        }
     }
     
     updateView() {
-        const content = this.container.querySelector('.todo-content');
-        const breadcrumb = this.container.querySelector('.todo-breadcrumb');
+        const content = this.find('.todo-content');
+        const breadcrumb = this.find('.todo-breadcrumb');
         
         if (this.currentView === 'lists') {
             breadcrumb.innerHTML = '📝 Todo Lists';
             content.innerHTML = this.renderLists();
-            this.bindContentEvents(); // Fix: Rebind events after rendering lists
+            this.bindContentEvents();
         } else if (this.currentView === 'items') {
             const activeList = this.lists[this.activeListId];
             breadcrumb.innerHTML = `
-                <button class="back-button">← Back</button>
+                <button class="tool-btn back-button">← Back</button>
                 📋 ${activeList.name}
             `;
             content.innerHTML = this.renderItems();
             
             // Bind back button
             const backButton = breadcrumb.querySelector('.back-button');
-            backButton.addEventListener('click', () => this.showLists());
+            if (backButton) {
+                backButton.addEventListener('click', () => this.showLists());
+            }
             
-            this.bindContentEvents(); // Fix: Rebind events after rendering items
+            this.bindContentEvents();
         }
     }
     
@@ -414,7 +237,7 @@ export class TodoListTool {
         
         this.hideAddInput();
         this.updateView();
-        await this.saveToStorage();
+        await this.saveTodos();
     }
     
     createList(name) {
@@ -454,14 +277,12 @@ export class TodoListTool {
         this.currentView = 'lists';
         this.activeListId = null;
         this.updateView();
-        setTimeout(() => this.applyBreathingBackgrounds(), 50);
     }
     
     showItems(listId) {
         this.currentView = 'items';
         this.activeListId = listId;
         this.updateView();
-        setTimeout(() => this.applyBreathingBackgrounds(), 50);
     }
     
     async toggleItem(itemId) {
@@ -479,7 +300,7 @@ export class TodoListTool {
             }
             
             this.updateView();
-            await this.saveToStorage();
+            await this.saveTodos();
         }
     }
     
@@ -507,7 +328,7 @@ export class TodoListTool {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
     
-    async saveToStorage() {
+    async saveTodos() {
         try {
             // First try to save to external file using Tauri
             if (window.__TAURI__ && window.__TAURI__.core) {
@@ -516,22 +337,17 @@ export class TodoListTool {
                     data: this.lists
                 });
                 console.log('✅ Todos saved to external file');
-            } else {
-                // Fallback to localStorage if Tauri not available
-                localStorage.setItem('ucanduit-todos', JSON.stringify(this.lists));
-                console.log('📱 Todos saved to localStorage (fallback)');
+                return;
             }
         } catch (error) {
-            console.error('❌ Failed to save todos to file, using localStorage fallback:', error);
-            try {
-                localStorage.setItem('ucanduit-todos', JSON.stringify(this.lists));
-            } catch (localError) {
-                console.error('❌ Failed to save todos to localStorage:', localError);
-            }
+            console.error('❌ Failed to save todos to file, using storage fallback:', error);
         }
+        
+        // Fallback to ToolBase storage
+        this.saveToStorage('lists', this.lists);
     }
     
-    async loadFromStorage() {
+    async loadTodos() {
         try {
             // First try to load from external file using Tauri
             if (window.__TAURI__ && window.__TAURI__.core) {
@@ -545,31 +361,31 @@ export class TodoListTool {
                 }
             }
         } catch (error) {
-            console.log('📄 No external todos file found or Tauri unavailable, checking localStorage');
+            console.log('📄 No external todos file found or Tauri unavailable, checking storage');
         }
         
-        // Fallback to localStorage
-        try {
-            const saved = localStorage.getItem('ucanduit-todos');
-            if (saved) {
-                this.lists = JSON.parse(saved);
-                console.log('📱 Todos loaded from localStorage');
-                
-                // Migrate from localStorage to file if Tauri is available
-                if (window.__TAURI__ && window.__TAURI__.core) {
-                    await this.saveToStorage();
-                    console.log('🔄 Migrated todos from localStorage to external file');
+        // Fallback to ToolBase storage
+        this.lists = this.loadFromStorage('lists', {});
+        
+        // Try old localStorage key for migration
+        if (Object.keys(this.lists).length === 0) {
+            try {
+                const oldData = localStorage.getItem('ucanduit-todos');
+                if (oldData) {
+                    this.lists = JSON.parse(oldData);
+                    await this.saveTodos(); // Migrate to new storage
+                    localStorage.removeItem('ucanduit-todos'); // Clean up old key
+                    console.log('🔄 Migrated todos from old storage');
                 }
+            } catch (error) {
+                console.error('❌ Failed to migrate old todos:', error);
             }
-        } catch (error) {
-            console.error('❌ Failed to load todos from localStorage:', error);
-            this.lists = {};
         }
     }
     
-    // Cleanup method for when tool is unloaded
+    // Override ToolBase destroy method
     async destroy() {
-        await this.saveToStorage(); // Save before destroying
-        this.container.innerHTML = '';
+        await this.saveTodos(); // Save before destroying
+        super.destroy(); // Call parent destroy
     }
 }

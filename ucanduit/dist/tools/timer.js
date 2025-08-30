@@ -111,9 +111,8 @@ export class TimerTool extends ToolBase {
                 
                 <!-- Duration Slider -->
                 <div style="margin-bottom: 12px;">
-                    <input type="range" id="timer-slider-${this.id}" 
-                           min="5" max="120" value="25" step="5"
-                           style="width: 100%; accent-color: var(--udu-green);">
+                    <input type="range" class="slider" id="timer-slider-${this.id}" 
+                           min="5" max="120" value="25" step="5">
                     <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
                         <span id="slider-label-${this.id}">25 minutes</span>
                     </div>

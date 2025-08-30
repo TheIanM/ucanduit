@@ -209,7 +209,7 @@ export class AmbientSoundsTool extends AudioToolBase {
                         color: #2a2d34;
                         text-align: center;
                     ">${config.displayName}</div>
-                    <input type="range" class="volume-slider" data-sound="${key}" min="0" max="100" value="0">
+                    <input type="range" class="slider volume-slider" data-sound="${key}" min="0" max="100" value="0">
                 </div>
             `).join('');
         } else {

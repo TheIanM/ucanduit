@@ -116,42 +116,22 @@ export class AudioToolBase {
     getSliderStyles() {
         return `
             <style>
+                /* Volume slider specific overrides for the shared .slider class */
                 .volume-slider {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 100%;
-                    height: 12px;
-                    border-radius: 8px;
-                    background: #F5F5F5;
-                    border: 2px solid #2a2d34;
-                    outline: none;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
                     --thumb-scale: 1;
                 }
                 
                 .volume-slider::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 3px solid #2a2d34;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
                     transform: scale(var(--thumb-scale));
                     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 }
 
                 .volume-slider::-moz-range-thumb {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 3px solid #2a2d34;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
+                    transform: scale(var(--thumb-scale));
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+                
+                .volume-slider::-ms-thumb {
                     transform: scale(var(--thumb-scale));
                     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 }

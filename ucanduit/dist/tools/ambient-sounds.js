@@ -99,7 +99,7 @@ export class FocusNoiseGeneratorTool extends AudioToolBase {
                     <div class="noise-label" style="
                         font-size: 16px;
                         font-weight: 600;
-                        color: #2a2d34;
+                        color: var(--text-primary);
                         text-align: center;
                     ">White Noise</div>
                     <input type="range" class="slider volume-slider" data-sound="white-noise" min="0" max="100" value="0">
@@ -113,7 +113,7 @@ export class FocusNoiseGeneratorTool extends AudioToolBase {
                     <div class="noise-label" style="
                         font-size: 16px;
                         font-weight: 600;
-                        color: #2a2d34;
+                        color: var(--text-primary);
                         text-align: center;
                     ">Brown Noise</div>
                     <input type="range" class="slider volume-slider" data-sound="brown-noise" min="0" max="100" value="0">

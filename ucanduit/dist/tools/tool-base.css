@@ -2,9 +2,9 @@
 
 /* Button Styles */
 .tool-btn {
-    background: #F5F5F5;
-    color: #2a2d34;
-    border: 2px solid #2a2d34;
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
     border-radius: 8px;
     padding: 6px 12px;
     cursor: pointer;
@@ -18,8 +18,8 @@
 }
 
 .tool-btn:hover {
-    background: #2a2d34;
-    color: #F5F5F5;
+    background: var(--text-primary);
+    color: var(--background);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
@@ -71,9 +71,9 @@
 
 /* Input Styles */
 .tool-input {
-    background: #F5F5F5;
-    color: #2a2d34;
-    border: 2px solid #2a2d34;
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
     border-radius: 8px;
     padding: 8px 12px;
     font-family: 'Quicksand', sans-serif;
@@ -86,14 +86,14 @@
 
 .tool-input:focus {
     outline: none;
-    border-color: #4ecf9d;
+    border-color: var(--success);
     box-shadow: 0 0 0 3px rgba(78, 207, 157, 0.2);
 }
 
 .tool-textarea {
-    background: #F5F5F5;
-    color: #2a2d34;
-    border: 2px solid #2a2d34;
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
     border-radius: 8px;
     padding: 12px;
     font-family: 'Quicksand', sans-serif;
@@ -109,7 +109,7 @@
 
 .tool-textarea:focus {
     outline: none;
-    border-color: #4ecf9d;
+    border-color: var(--success);
     box-shadow: 0 0 0 3px rgba(78, 207, 157, 0.2);
 }
 

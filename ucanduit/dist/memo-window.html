@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="tools/tool-base.css">
     <link rel="stylesheet" href="tools/memos.css">
     
@@ -59,7 +60,7 @@ This dedicated memo window gives you plenty of space to write!"
     <script type="module">
         // Import and use the memos tool logic
         import { MemosTool } from './tools/memos.js';
-        import { createAnimatedBackground, getSmallWindowCircles } from './animated-background.js';
+        import { createAnimatedBackground, getDefaultCircles } from './animated-background.js';
 
         let memoTool;
         let currentWindow;
@@ -627,8 +628,21 @@ This dedicated memo window gives you plenty of space to write!"
             }
         };
         
+        // Initialize dark mode from saved preference
+        function initializeDarkMode() {
+            try {
+                const savedTheme = localStorage.getItem('ucanduit-theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (error) {
+                console.log('Could not load theme preference:', error);
+            }
+        }
+
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', () => {
+            initializeDarkMode();
             // Create animated background with smaller circles for memo windows
             createAnimatedBackground({ 
                 containerId: 'animated-background',

@@ -6,19 +6,7 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --udu-green: #4ecf9d;
-            --candu-blue: #3f88c5;
-            --woohoo-red: #d72638;
-            --perfect-pink: #FF6B9F;
-            --oh-orange: #FF9B54;
-            --please-purple: #B06BFF;
-            --not-white: #F5F5F5;
-            --not-black: #2a2d34;
-            --background: var(--not-white);
-            --text-primary: var(--not-black);
-            --translucent-bg: rgba(0, 0, 0, 0.1);
-        }
+        /* CSS variables now inherit from main styles.css */
 
         body {
             font-family: 'Quicksand', sans-serif;
@@ -174,9 +162,9 @@
 }
 
 .memo-editor {
-    background: var(--not-white);
-    color: #2a2d34;
-    border: 2px solid #2a2d34;
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
     border-radius: 8px;
     padding: 15px;
     font-family: 'Quicksand', sans-serif;
@@ -193,7 +181,7 @@
 
 .memo-editor:focus {
     outline: none;
-    border-color: #4ecf9d;
+    border-color: var(--success);
     box-shadow: 0 0 0 3px rgba(78, 207, 157, 0.2);
 }
 
@@ -213,9 +201,9 @@
 }
 
 .memo-format-btn {
-    background: #F5F5F5;
-    color: #2a2d34;
-    border: 1px solid #2a2d34;
+    background: var(--background);
+    color: var(--text-primary);
+    border: 1px solid var(--text-primary);
     border-radius: 4px;
     padding: 4px 8px;
     cursor: pointer;
@@ -228,19 +216,19 @@
 }
 
 .memo-format-btn:hover {
-    background: #2a2d34;
-    color: #F5F5F5;
+    background: var(--text-primary);
+    color: var(--background);
 }
 
 .memo-format-btn.active {
-    background: #4ecf9d;
+    background: var(--success);
     color: white;
-    border-color: #4ecf9d;
+    border-color: var(--success);
 }
 
 .memo-status {
     font-size: 11px;
-    color: #666;
+    color: var(--text-secondary);
     text-align: right;
     margin-top: 5px;
     opacity: 0.7;
@@ -248,12 +236,12 @@
 
 .memo-shortcuts {
     font-size: 10px;
-    color: #888;
+    color: var(--text-secondary);
     margin-top: 5px;
     padding: 5px;
     background: rgba(42, 45, 52, 0.03);
     border-radius: 4px;
-    border-left: 3px solid #4ecf9d;
+    border-left: 3px solid var(--success);
 }
 
 .memo-link-indicator {
@@ -272,7 +260,7 @@
 
 .memo-link-tooltip {
     position: absolute;
-    background: #2a2d34;
+    background: var(--text-primary);
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
@@ -290,14 +278,14 @@
 
 /* Link Detection Styles */
 .memo-link {
-    color: #3f88c5;
+    color: var(--primary);
     text-decoration: underline;
     cursor: pointer;
     transition: color 0.2s ease;
 }
 
 .memo-link:hover {
-    color: #2c6b9f;
+    color: var(--primary);
     background: rgba(63, 136, 197, 0.1);
     border-radius: 3px;
     padding: 1px 2px;
@@ -321,8 +309,8 @@
 }
 
 .clipboard-item {
-    background: #F5F5F5;
-    border: 1px solid #ccc;
+    background: var(--background);
+    border: 1px solid var(--text-secondary);
     border-radius: 4px;
     padding: 8px;
     margin-bottom: 6px;
@@ -336,8 +324,8 @@
 }
 
 .clipboard-item:hover {
-    background: #e0e0e0;
-    border-color: #4ecf9d;
+    background: var(--translucent-bg);
+    border-color: var(--success);
     transform: translateX(2px);
 }
 
@@ -352,7 +340,7 @@
     left: 0;
     right: 0;
     height: 10px;
-    background: linear-gradient(transparent, #F5F5F5);
+    background: linear-gradient(transparent, var(--background));
     pointer-events: none;
 }
 

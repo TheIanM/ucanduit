@@ -382,8 +382,21 @@
             }
         }
         
+        // Initialize dark mode from saved preference
+        function initializeDarkMode() {
+            try {
+                const savedTheme = localStorage.getItem('ucanduit-theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (error) {
+                console.log('Could not load theme preference:', error);
+            }
+        }
+
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', () => {
+            initializeDarkMode();
             // Create animated background with smaller circles for weather window
             createAnimatedBackground({ 
                 containerId: 'animated-background',

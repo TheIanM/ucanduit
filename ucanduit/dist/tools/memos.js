@@ -174,7 +174,7 @@ export class MemosTool extends ToolBase {
                     <!-- Recent notes -->
                     <div class="recent-notes" style="margin-bottom: 12px;">
                         ${recentMemos.length > 0 ? `
-                            <div style="font-size: 10px; color: #666; margin-bottom: 6px; font-weight: 600;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">
                                 RECENT NOTES:
                             </div>
                             ${recentMemos.map(memo => `
@@ -192,14 +192,14 @@ export class MemosTool extends ToolBase {
                                     transition: background-color 0.2s ease;
                                 " onmouseover="this.style.backgroundColor='rgba(42, 45, 52, 0.08)'" 
                                    onmouseout="this.style.backgroundColor='rgba(42, 45, 52, 0.03)'">
-                                    <div style="font-weight: 600; color: #333;">${this.escapeHtml(memo.title)}</div>
-                                    <div style="color: #666; font-size: 10px;">${memo.date} • ${this.escapeHtml(memo.preview)}</div>
+                                    <div style="font-weight: 600; color: var(--text-primary);">${this.escapeHtml(memo.title)}</div>
+                                    <div style="color: var(--text-secondary); font-size: 10px;">${memo.date} • ${this.escapeHtml(memo.preview)}</div>
                                 </div>
                             `).join('')}
                         ` : `
                             <div style="
                                 font-size: 11px;
-                                color: #888;
+                                color: var(--text-secondary);
                                 font-style: italic;
                                 text-align: center;
                                 padding: 8px;
